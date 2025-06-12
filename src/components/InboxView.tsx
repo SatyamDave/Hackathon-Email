@@ -16,16 +16,16 @@ export default function InboxView() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900">
+    <div className="h-full flex flex-col bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-primary">
       {/* Header */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-dark-muted">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-100 tracking-wide">Inbox</h2>
+          <h2 className="text-xl font-semibold text-dark-text-primary tracking-wide">Inbox</h2>
           <div className="flex items-center space-x-2">
             <button 
               onClick={handleRefresh}
               disabled={isLoading}
-              className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+              className="p-2 text-dark-text-secondary hover:text-dark-accent hover:bg-dark-muted rounded-lg transition-colors disabled:opacity-50"
             >
               {isLoading ? (
                 <Loader className="w-4 h-4 animate-spin" />
@@ -33,7 +33,7 @@ export default function InboxView() {
                 <RefreshCw className="w-4 h-4" />
               )}
             </button>
-            <button className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-800 rounded-lg transition-colors">
+            <button className="p-2 text-dark-text-secondary hover:text-dark-accent hover:bg-dark-muted rounded-lg transition-colors">
               <Filter className="w-4 h-4" />
             </button>
           </div>
@@ -41,13 +41,13 @@ export default function InboxView() {
 
         {/* Search */}
         <div className="relative mb-4">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-text-secondary" />
           <input
             type="text"
             placeholder="Search emails..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent text-gray-100 placeholder-gray-500 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-dark-primary border border-dark-muted rounded-lg focus:ring-2 focus:ring-dark-accent focus:border-transparent text-dark-text-primary placeholder-dark-text-secondary transition-all"
           />
         </div>
 

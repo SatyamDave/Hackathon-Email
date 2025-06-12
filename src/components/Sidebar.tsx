@@ -25,26 +25,26 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-gradient-to-b from-gray-900 via-gray-950 to-gray-900 text-gray-100 flex flex-col shadow-xl border-r border-gray-800">
+    <div className="w-64 bg-gradient-to-b from-dark-primary via-dark-secondary to-dark-primary text-dark-text-primary flex flex-col shadow-xl border-r border-dark-muted">
       {/* Header */}
-      <div className="p-6 border-b border-gray-800">
+      <div className="p-6 border-b border-dark-muted">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg">
-            <Brain className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-dark-accent rounded-lg flex items-center justify-center shadow-lg">
+            <Brain className="w-6 h-6 text-dark-primary" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-wide">SmartInbox</h1>
-            <p className="text-gray-400 text-sm">AI-Powered Email</p>
+            <p className="text-dark-text-secondary text-sm">AI-Powered Email</p>
           </div>
         </div>
       </div>
 
       {/* Sync Button */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-dark-muted">
         <button
           onClick={handleSync}
           disabled={isLoading}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors disabled:opacity-50 shadow-md"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-dark-accent hover:bg-dark-accent/90 text-dark-primary rounded-lg transition-colors disabled:opacity-50 shadow-md"
         >
           <Sync className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           <span>{isLoading ? 'Syncing...' : 'Sync Emails'}</span>
@@ -60,8 +60,8 @@ export default function Sidebar() {
                 href="#"
                 className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors font-medium shadow-sm
                   ${item.isActive
-                    ? 'bg-blue-700 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'}
+                    ? 'bg-dark-accent text-dark-primary'
+                    : 'text-dark-text-secondary hover:bg-dark-muted hover:text-dark-text-primary'}
                 `}
               >
                 <div className="flex items-center space-x-3">
@@ -69,7 +69,7 @@ export default function Sidebar() {
                   <span>{item.label}</span>
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className="bg-gray-800 text-gray-300 px-2 py-1 rounded-full text-xs">
+                  <span className="bg-dark-muted text-dark-text-secondary px-2 py-1 rounded-full text-xs">
                     {item.count}
                   </span>
                 )}
@@ -80,10 +80,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Settings */}
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-dark-muted">
         <a
           href="#"
-          className="flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors font-medium"
+          className="flex items-center space-x-3 px-4 py-3 text-dark-text-secondary hover:bg-dark-muted hover:text-dark-text-primary rounded-lg transition-colors font-medium"
         >
           <Settings className="w-5 h-5" />
           <span>Settings</span>

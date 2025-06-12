@@ -12,15 +12,15 @@ export default function ViewModeSelector() {
   ];
 
   return (
-    <div className="flex bg-gray-100 rounded-lg p-1">
+    <div className="flex bg-dark-muted rounded-lg p-1">
       {viewModes.map((mode) => (
         <button
           key={mode.key}
           onClick={() => setCurrentView(mode.key)}
           className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
             currentView === mode.key
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-dark-accent text-dark-primary shadow-sm'
+              : 'text-dark-text-secondary hover:text-dark-text-primary'
           }`}
           title={mode.description}
         >
