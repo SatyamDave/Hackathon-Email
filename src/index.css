@@ -1,3 +1,107 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  background: #111;
+  color: #f3f3f3;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.app-main-bg {
+  background: #181818;
+}
+
+.sidebar {
+  background: #111;
+  color: #fff;
+  border-right: 1px solid #222;
+}
+
+.sidebar .active, .sidebar .active-nav {
+  background: #22c55e;
+  color: #111;
+  border-radius: 8px;
+}
+
+.sidebar .nav-link {
+  color: #f3f3f3;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.sidebar .nav-link:hover {
+  background: #222;
+  color: #22c55e;
+}
+
+.button-primary, .fluentui-primary {
+  background: #22c55e !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+  border: none !important;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.button-primary:hover, .fluentui-primary:hover {
+  background: #16a34a !important;
+}
+
+.button-secondary {
+  background: #fff;
+  color: #22c55e;
+  border: 1px solid #22c55e;
+  border-radius: 8px;
+}
+
+.tab-bar {
+  background: #181818;
+  border-bottom: 1px solid #222;
+}
+.tab-bar .tab {
+  color: #f3f3f3;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  border-radius: 0;
+  transition: border 0.2s, color 0.2s;
+}
+.tab-bar .tab.active {
+  color: #22c55e;
+  border-bottom: 2px solid #22c55e;
+  background: #181818;
+}
+
+.label-green {
+  background: #22c55e;
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.day-planner {
+  background: #fff;
+  color: #111;
+  border-left: 1px solid #e5e7eb;
+  box-shadow: 0 2px 12px #0001;
+}
+
+input, textarea, .fluentui-input {
+  background: #181818 !important;
+  color: #f3f3f3 !important;
+  border: 1px solid #222 !important;
+  border-radius: 6px !important;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #181818;
+}
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 8px;
+}

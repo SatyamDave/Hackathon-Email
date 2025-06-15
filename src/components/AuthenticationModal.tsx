@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Brain, Mail, Calendar, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
-import { useEmail } from '../contexts/EmailContext';
+import { useOutlookLogin } from '../hooks/useOutlookLogin';
 
 interface AuthenticationModalProps {
   isOpen: boolean;
@@ -8,15 +8,17 @@ interface AuthenticationModalProps {
 }
 
 export default function AuthenticationModal({ isOpen, onClose }: AuthenticationModalProps) {
-  const { authenticateOutlook, isLoading } = useEmail();
   const [step, setStep] = useState<'intro' | 'connecting' | 'success'>('intro');
+  const login = useOutlookLogin();
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
   const handleConnect = async () => {
     try {
+      setIsLoading(true);
       setStep('connecting');
-      await authenticateOutlook();
+      await login();
       setStep('success');
       setTimeout(() => {
         onClose();
@@ -24,6 +26,8 @@ export default function AuthenticationModal({ isOpen, onClose }: AuthenticationM
     } catch (error) {
       console.error('Authentication failed:', error);
       setStep('intro');
+    } finally {
+      setIsLoading(false);
     }
   };
 

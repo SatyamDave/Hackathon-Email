@@ -5,85 +5,51 @@ import EmailDetail from './EmailDetail';
 import DayPlanner from './DayPlanner';
 import AuthenticationModal from './AuthenticationModal';
 import AIPromptBox from './AIPromptBox';
-import { useEmail } from '../contexts/EmailContext';
+import { useMsal } from '@azure/msal-react';
 
 export default function Layout() {
-  const { selectedEmail, isAuthenticated, isLoading } = useEmail();
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { accounts } = useMsal();
+  const isSignedIn = accounts.length > 0;
+  const [showAuthModal, setShowAuthModal] = useState(!isSignedIn);
 
   useEffect(() => {
-    if (!isAuthenticated && !isLoading) {
-      setShowAuthModal(true);
-    }
-  }, [isAuthenticated, isLoading]);
+    setShowAuthModal(!isSignedIn);
+    console.log('MSAL accounts:', accounts);
+  }, [isSignedIn, accounts]);
 
   const handleAuthModalClose = () => {
     setShowAuthModal(false);
   };
 
-  if (!isAuthenticated) {
+  // Debug output for troubleshooting
+  if (!isSignedIn) {
     return (
-      <>
-        <div className="h-screen bg-dark-primary flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-24 h-24 mx-auto mb-4 bg-dark-secondary rounded-full flex items-center justify-center">
-              <svg className="w-12 h-12 text-dark-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-dark-text-primary mb-2">Welcome to SmartInbox</h3>
-            <p className="text-dark-text-secondary mb-4">Connect your Outlook account to get started with AI-powered email management</p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-2 bg-dark-accent text-dark-primary rounded-lg hover:bg-dark-accent/90 transition-colors"
-            >
-              Connect to Outlook
-            </button>
-          </div>
+      <div>
+        <div style={{ color: 'red', margin: 16 }}>
+          <strong>Debug:</strong> isSignedIn: {isSignedIn ? 'YES' : 'NO'}<br />
+          Accounts: {JSON.stringify(accounts)}
         </div>
-        <AuthenticationModal 
-          isOpen={showAuthModal} 
-          onClose={handleAuthModalClose}
-        />
-      </>
+        <AuthenticationModal isOpen={showAuthModal} onClose={handleAuthModalClose} />
+      </div>
     );
   }
 
+  // Main app UI when signed in
   return (
-    <div className="h-screen bg-dark-primary flex">
-      {/* Main Sidebar */}
-      <Sidebar />
-      
-      {/* Main Content Area */}
-      <div className="flex-1 flex">
-        {/* Left Section: Inbox and Email Detail */}
+    <div>
+      <div style={{ color: 'green', margin: 16 }}>
+        <strong>Debug:</strong> isSignedIn: {isSignedIn ? 'YES' : 'NO'}<br />
+        Accounts: {JSON.stringify(accounts)}
+      </div>
+      <div className="h-screen flex">
+        <Sidebar />
         <div className="flex-1 flex flex-col">
-      {/* Inbox View */}
-          <div className="w-96 bg-dark-secondary border-r border-dark-muted flex flex-col">
-        <InboxView />
-      </div>
-      
-      {/* Email Detail */}
-        <div className="flex-1">
-          {selectedEmail ? <EmailDetail /> : <EmptyState />}
-          </div>
+          <InboxView />
+          <AIPromptBox />
         </div>
-        
-        {/* Right Section: Smart Planner */}
-        <div className="w-80 bg-dark-secondary border-l border-dark-muted">
-          <DayPlanner />
-        </div>
+        <EmailDetail />
+        <DayPlanner />
       </div>
-
-      {/* AI Assistant - Floating in bottom left */}
-      <div className="fixed bottom-6 left-[420px]">
-        <AIPromptBox />
-      </div>
-
-      <AuthenticationModal 
-        isOpen={showAuthModal} 
-        onClose={handleAuthModalClose}
-      />
     </div>
   );
 }
