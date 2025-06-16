@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Email } from '../types/email';
 import { mockEmails } from '../data/mockEmails';
+import { AzureOpenAIService } from '../services/azureOpenAI';
 
 interface EmailContextType {
   emails: Email[];
@@ -23,6 +24,11 @@ interface EmailContextType {
   syncEmails: () => Promise<void>;
   sendReply: (emailId: string, content: string) => Promise<boolean>;
   scheduleMeeting: (meetingData: any) => Promise<any>;
+  generateAIPriorities: () => Promise<void>;
+  generateCustomView: (criteria: string) => Promise<void>;
+  hasAIPriorities: boolean;
+  hasCustomView: boolean;
+  customCriteria: string;
 }
 
 const EmailContext = createContext<EmailContextType | undefined>(undefined);
@@ -35,6 +41,9 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [hasAIPriorities, setHasAIPriorities] = useState(false);
+  const [hasCustomView, setHasCustomView] = useState(false);
+  const [customCriteria, setCustomCriteria] = useState('');
 
   const markAsRead = (emailId: string) => {
     setEmails(emails.map(email => 
@@ -68,6 +77,10 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     // Apply view mode filter
     switch (currentView) {
       case 'priority':
+        if (!hasAIPriorities) {
+          // Show empty view until AI priorities are generated
+          return [];
+        }
         filtered.sort((a, b) => {
           if (a.urgency === 'high' && b.urgency !== 'high') return -1;
           if (a.urgency !== 'high' && b.urgency === 'high') return 1;
@@ -77,11 +90,12 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
         });
         break;
       case 'custom':
-        filtered = filtered.filter(email => 
-          email.urgency === 'high' || 
-          email.isImportant || 
-          email.labels.includes('Action Needed')
-        );
+        if (!hasCustomView) {
+          // Show empty view until custom sorting is generated
+          return [];
+        }
+        // Custom view maintains the order set by generateCustomView
+        // No additional sorting needed as emails are already in custom order
         break;
       default:
         filtered.sort((a, b) => 
@@ -101,8 +115,19 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
   };
 
   const authenticateOutlook = async () => {
-    setIsAuthenticated(true);
-    setUser({ id: 'placeholder', name: 'User', email: 'user@example.com' });
+    setIsLoading(true);
+    try {
+      // Simulate authentication delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setIsAuthenticated(true);
+      setUser({ id: 'demo-user', name: 'Demo User', email: 'demo@example.com' });
+      
+      // Keep using mock data for demo purposes
+      setEmails(mockEmails);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const syncEmails = async () => {
@@ -122,6 +147,64 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
 
   const scheduleMeeting = async (meetingData: any) => {
     return {};
+  };
+
+  const generateAIPriorities = async () => {
+    setIsLoading(true);
+    try {
+      console.log('Generating AI priorities for emails...');
+      const priorities = await AzureOpenAIService.smartPrioritizeEmails(emails);
+      console.log('AI-generated priorities:', priorities);
+      
+      // Update emails with AI-generated priorities
+      const updatedEmails = emails.map(email => ({
+        ...email,
+        urgency: priorities[email.id] || email.urgency
+      }));
+      
+      setEmails(updatedEmails);
+      setHasAIPriorities(true);
+      console.log('Emails updated with AI priorities');
+    } catch (error) {
+      console.error('Failed to generate AI priorities:', error);
+      // Could add error state here if needed
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateCustomView = async (criteria: string) => {
+    setIsLoading(true);
+    try {
+      console.log('Generating custom view with criteria:', criteria);
+      const customSorting = await AzureOpenAIService.generateCustomSorting(emails, criteria);
+      console.log('AI-generated custom sorting:', customSorting);
+      
+      // Apply custom sorting to emails
+      const sortedEmails = [...emails].sort((a, b) => {
+        const aIndex = customSorting.indexOf(a.id);
+        const bIndex = customSorting.indexOf(b.id);
+        
+        // If both emails are in the custom sorting, use that order
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex;
+        }
+        // If only one is in the custom sorting, prioritize it
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        // If neither is in custom sorting, maintain original order
+        return 0;
+      });
+      
+      setEmails(sortedEmails);
+      setCustomCriteria(criteria);
+      setHasCustomView(true);
+      console.log('Emails updated with custom sorting');
+    } catch (error) {
+      console.error('Failed to generate custom view:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -145,7 +228,12 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
       authenticateOutlook,
       syncEmails,
       sendReply,
-      scheduleMeeting
+      scheduleMeeting,
+      generateAIPriorities,
+      generateCustomView,
+      hasAIPriorities,
+      hasCustomView,
+      customCriteria
     }}>
       {children}
     </EmailContext.Provider>

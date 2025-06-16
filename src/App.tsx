@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { EmailProvider } from './contexts/EmailContext';
 import Layout from './components/Layout';
+import AuthenticationModal from './components/AuthenticationModal';
+import { useMsal } from '@azure/msal-react';
 
 function LandingPage({ onStart }: { onStart: () => void }) {
   return (
@@ -29,13 +31,33 @@ function LandingPage({ onStart }: { onStart: () => void }) {
   );
 }
 
+function AppContent() {
+  const { accounts } = useMsal();
+  const isSignedIn = accounts.length > 0;
+  const [showAuthModal, setShowAuthModal] = useState(!isSignedIn);
+
+  if (!isSignedIn) {
+    return (
+      <AuthenticationModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
+    );
+  }
+
+  return (
+    <EmailProvider>
+      <Layout />
+    </EmailProvider>
+  );
+}
+
 export default function App() {
   const [started, setStarted] = useState(false);
+  
   return started ? (
     <div className="dark min-h-screen bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-muted text-dark-text-primary">
-      <EmailProvider>
-        <Layout />
-      </EmailProvider>
+      <AppContent />
     </div>
   ) : (
     <LandingPage onStart={() => setStarted(true)} />

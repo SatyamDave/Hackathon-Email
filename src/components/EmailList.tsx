@@ -1,10 +1,10 @@
 import React from 'react';
-import { Star, Paperclip, Calendar, AlertCircle } from 'lucide-react';
+import { Star, Paperclip, Calendar, AlertCircle, Brain, Wand2 } from 'lucide-react';
 import { useEmail } from '../contexts/EmailContext';
 import { Email } from '../types/email';
 
 export default function EmailList() {
-  const { getFilteredEmails, selectedEmail, setSelectedEmail, markAsRead } = useEmail();
+  const { getFilteredEmails, selectedEmail, setSelectedEmail, markAsRead, currentView } = useEmail();
   const emails = getFilteredEmails();
 
   const handleEmailClick = (email: Email) => {
@@ -42,15 +42,41 @@ export default function EmailList() {
   };
 
   if (emails.length === 0) {
+    const getEmptyStateContent = () => {
+      switch (currentView) {
+        case 'priority':
+          return {
+            icon: <Brain className="w-8 h-8 text-purple-500" />,
+            title: "No AI Priorities Generated",
+            description: "Click the 'Generate AI Priorities' button above to let AI analyze and prioritize your emails."
+          };
+        case 'custom':
+          return {
+            icon: <Wand2 className="w-8 h-8 text-indigo-500" />,
+            title: "No Custom View Generated",
+            description: "Enter your sorting criteria above and click 'Generate' to create a custom email view."
+          };
+        default:
+          return {
+            icon: <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>,
+            title: "No emails found",
+            description: "Try adjusting your search criteria or refresh your inbox."
+          };
+      }
+    };
+
+    const { icon, title, description } = getEmptyStateContent();
+
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
-            <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 mx-auto mb-4 bg-dark-primary rounded-full flex items-center justify-center shadow-lg">
+            {icon}
           </div>
-          <p className="text-gray-400">No emails found</p>
+          <h3 className="text-lg font-medium text-dark-text-primary mb-2">{title}</h3>
+          <p className="text-dark-text-secondary text-sm leading-relaxed">{description}</p>
         </div>
       </div>
     );

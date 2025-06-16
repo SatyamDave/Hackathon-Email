@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, Loader, ChevronDown, ChevronUp, MessageSquare, Calendar, Star, Filter, Brain, FileText } from 'lucide-react';
 import { useEmail } from '../contexts/EmailContext';
+import { AzureOpenAIService } from '../services/azureOpenAI';
 
 interface ChatMessage {
   role: 'user' | 'ai';
@@ -14,8 +15,16 @@ export default function AIPromptBox() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentPrompts, setRecentPrompts] = useState<string[]>([]);
   const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { selectedEmail } = useEmail();
+  const { selectedEmail, emails, getFilteredEmails } = useEmail();
+
+  // Check if OpenAI is configured
+  const isConfigured = !!(
+    import.meta.env.VITE_AZURE_OPENAI_API_KEY &&
+    import.meta.env.VITE_AZURE_OPENAI_ENDPOINT &&
+    import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME
+  );
 
   // Auto-resize textarea
   useEffect(() => {
@@ -35,31 +44,53 @@ export default function AIPromptBox() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || isProcessing) return;
+    
+    if (!isConfigured) {
+      setError('Azure OpenAI is not configured. Please check your environment variables.');
+      return;
+    }
+    
+    setError(null);
     setIsProcessing(true);
     setRecentPrompts(prev => [prompt, ...prev].slice(0, 5));
     setChat(prev => [...prev, { role: 'user', content: prompt }]);
-    // Mock AI response
-    setTimeout(() => {
-      setChat(prev => [...prev, { role: 'ai', content: `This is a mock AI response to: "${prompt}"` }]);
+
+    try {
+      const allEmails = getFilteredEmails();
+      const aiResponse = await AzureOpenAIService.emailAssistantChat(prompt, selectedEmail, allEmails);
+      setChat(prev => [...prev, { role: 'ai', content: aiResponse }]);
+    } catch (error) {
+      console.error('AI chat error:', error);
+      setError('Failed to connect to OpenAI. Please check your API configuration.');
+      setChat(prev => [...prev, { role: 'ai', content: 'I apologize, but I encountered an error. Please check your OpenAI configuration and try again.' }]);
+    } finally {
       setIsProcessing(false);
       setPrompt('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
-    }, 1200);
+    }
   };
 
   // Summarize selected email
-  const handleSummarizeEmail = () => {
-    if (!selectedEmail) return;
-    const summaryPrompt = `Summarize this email: ${selectedEmail.content}`;
+  const handleSummarizeEmail = async () => {
+    if (!selectedEmail || isProcessing) return;
+    
+    const summaryPrompt = "Please summarize this email";
     setIsProcessing(true);
     setChat(prev => [...prev, { role: 'user', content: summaryPrompt }]);
-    setTimeout(() => {
-      setChat(prev => [...prev, { role: 'ai', content: `Mock summary for email: "${selectedEmail.content.slice(0, 80)}..."` }]);
+    
+    try {
+      const allEmails = getFilteredEmails();
+      const aiResponse = await AzureOpenAIService.emailAssistantChat(summaryPrompt, selectedEmail, allEmails);
+      setChat(prev => [...prev, { role: 'ai', content: aiResponse }]);
+    } catch (error) {
+      console.error('AI summary error:', error);
+      setChat(prev => [...prev, { role: 'ai', content: 'I apologize, but I encountered an error while summarizing the email. Please try again.' }]);
+    } finally {
       setIsProcessing(false);
-    }, 1200);
+    }
   };
 
   const quickActions = [
@@ -104,8 +135,30 @@ export default function AIPromptBox() {
       <div className="bg-dark-secondary rounded-b-xl border border-dark-muted border-t-0 shadow-lg flex flex-col h-[420px]">
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
-          {chat.length === 0 && (
-            <div className="text-dark-text-secondary text-xs text-center mt-8">No conversation yet. Start by asking something or use a quick action below.</div>
+          {error && (
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 mb-2">
+              <p className="text-red-400 text-xs">{error}</p>
+              {!isConfigured && (
+                <p className="text-red-300 text-xs mt-1">
+                  Please add your Azure OpenAI credentials to your .env file.
+                </p>
+              )}
+            </div>
+          )}
+          {chat.length === 0 && !error && (
+            <div className="text-dark-text-secondary text-xs text-center mt-8">
+              {!isConfigured ? (
+                <>
+                  <div className="mb-2">
+                    <Brain className="w-8 h-8 mx-auto mb-2 text-dark-accent" />
+                  </div>
+                  <p>AI Assistant requires Azure OpenAI configuration.</p>
+                  <p className="mt-1">Add your credentials to .env file to get started.</p>
+                </>
+              ) : (
+                "No conversation yet. Start by asking something or use a quick action below."
+              )}
+            </div>
           )}
           {chat.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -131,10 +184,10 @@ export default function AIPromptBox() {
               ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ask AI to help manage your inbox..."
+              placeholder={isConfigured ? "Ask AI to help manage your inbox..." : "Configure Azure OpenAI to enable AI chat..."}
               className="w-full min-h-[60px] max-h-[120px] px-3 py-2 bg-dark-primary border border-dark-muted rounded-lg focus:ring-2 focus:ring-dark-accent focus:border-transparent text-dark-text-primary placeholder-dark-text-secondary resize-none transition-all"
               onFocus={() => setShowSuggestions(true)}
-              disabled={isProcessing}
+              disabled={isProcessing || !isConfigured}
             />
             <div className="absolute bottom-2 right-2 flex space-x-1">
               <button
@@ -147,7 +200,7 @@ export default function AIPromptBox() {
               </button>
               <button
                 type="submit"
-                disabled={isProcessing || !prompt.trim()}
+                disabled={isProcessing || !prompt.trim() || !isConfigured}
                 className="p-1.5 bg-dark-accent text-dark-primary rounded-lg hover:bg-dark-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing ? (

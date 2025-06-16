@@ -1,55 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Sidebar from './Sidebar';
 import InboxView from './InboxView';
 import EmailDetail from './EmailDetail';
-import DayPlanner from './DayPlanner';
-import AuthenticationModal from './AuthenticationModal';
+import RightSidebar from './RightSidebar';
 import AIPromptBox from './AIPromptBox';
-import { useMsal } from '@azure/msal-react';
 
 export default function Layout() {
-  const { accounts } = useMsal();
-  const isSignedIn = accounts.length > 0;
-  const [showAuthModal, setShowAuthModal] = useState(!isSignedIn);
-
-  useEffect(() => {
-    setShowAuthModal(!isSignedIn);
-    console.log('MSAL accounts:', accounts);
-  }, [isSignedIn, accounts]);
-
-  const handleAuthModalClose = () => {
-    setShowAuthModal(false);
-  };
-
-  // Debug output for troubleshooting
-  if (!isSignedIn) {
-    return (
-      <div>
-        <div style={{ color: 'red', margin: 16 }}>
-          <strong>Debug:</strong> isSignedIn: {isSignedIn ? 'YES' : 'NO'}<br />
-          Accounts: {JSON.stringify(accounts)}
-        </div>
-        <AuthenticationModal isOpen={showAuthModal} onClose={handleAuthModalClose} />
-      </div>
-    );
-  }
-
-  // Main app UI when signed in
+  // Simply show the main app UI with mock data
+  // Authentication is handled at the App level
   return (
-    <div>
-      <div style={{ color: 'green', margin: 16 }}>
-        <strong>Debug:</strong> isSignedIn: {isSignedIn ? 'YES' : 'NO'}<br />
-        Accounts: {JSON.stringify(accounts)}
+    <div className="h-screen flex">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <InboxView />
+        <AIPromptBox />
       </div>
-      <div className="h-screen flex">
-        <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <InboxView />
-          <AIPromptBox />
-        </div>
-        <EmailDetail />
-        <DayPlanner />
-      </div>
+      <EmailDetail />
+      <RightSidebar />
     </div>
   );
 }

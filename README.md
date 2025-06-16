@@ -61,11 +61,22 @@ Before you begin, ensure you have the following installed:
    
    Add the following variables to your `.env` file:
    ```env
+   # Azure Active Directory Configuration
    VITE_AZURE_CLIENT_ID=your_azure_client_id
    VITE_AZURE_TENANT_ID=your_azure_tenant_id
+   
+   # Supabase Configuration (optional)
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   
+   # Azure OpenAI Configuration for AI Assistant
+   VITE_AZURE_OPENAI_API_KEY=your_azure_openai_api_key
+   VITE_AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+   VITE_AZURE_OPENAI_DEPLOYMENT_NAME=your_deployment_name
+   VITE_AZURE_OPENAI_API_VERSION=2024-02-15-preview
    ```
+   
+   > **🤖 AI Assistant Setup**: The AI assistant requires Azure OpenAI credentials. See the `AZURE_OPENAI_SETUP.md` file for detailed setup instructions.
 
 4. **Start the development server**
    ```bash
@@ -187,6 +198,29 @@ git push origin feature/your-feature-name
 - **`LoginButton.tsx`**: Authentication trigger component
 - **`useOutlookLogin.ts`**: Custom hook for Outlook authentication
 
+## 🤖 AI Assistant
+
+The AI Assistant is a powerful feature that helps you manage your emails more efficiently using Azure OpenAI.
+
+### Features
+- **Smart Email Analysis**: Get instant summaries of your emails
+- **Intelligent Responses**: AI-powered suggestions for email replies
+- **Action Item Extraction**: Automatically identify tasks and deadlines
+- **Email Organization**: Get help prioritizing and categorizing emails
+- **Natural Language Queries**: Ask questions about your emails in plain English
+
+### Sample Interactions
+- "Summarize my important emails from today"
+- "Help me prioritize my unread messages"
+- "Find any urgent action items in my inbox"
+- "Draft a professional response to this email"
+- "Organize my emails by project"
+
+### Requirements
+- Azure OpenAI API access
+- Proper environment variables configured
+- Internet connection for API calls
+
 ## 🚀 Deployment
 
 ### Production Build
@@ -198,7 +232,7 @@ npm run build
 Ensure all environment variables are properly set in your production environment:
 - Azure client and tenant IDs
 - Supabase URL and keys
-- Any additional API keys
+- Azure OpenAI credentials
 
 ## 🤝 Contributing
 
@@ -233,4 +267,4 @@ This application was developed for [Hackathon Name] with the goal of creating an
 
 ---
 
-**Happy Coding! 🚀** 
+**Happy Coding! 🚀**

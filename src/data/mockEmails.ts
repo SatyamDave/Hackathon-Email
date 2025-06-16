@@ -4,33 +4,38 @@ export const mockEmails: Email[] = [
   {
     id: '1',
     sender: {
-      name: 'Sarah Chen',
-      email: 'sarah.chen@company.com',
+      name: 'CEO Jennifer Williams',
+      email: 'ceo@company.com',
       avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?w=100&h=100&fit=crop&crop=face'
     },
-    subject: 'Q4 Strategy Meeting - Action Required',
-    preview: 'Hi team, we need to schedule our Q4 strategy session. Can we meet next Friday at 2PM?',
-    content: `Hi team,
+    subject: 'URGENT: Board Meeting Preparation - Response Required Today',
+    preview: 'Emergency board meeting tomorrow. Need Q4 financials and market analysis ASAP.',
+    content: `Team,
 
-I hope this email finds you well. We need to schedule our Q4 strategy session to discuss our upcoming initiatives and budget allocation.
+Emergency board meeting scheduled for tomorrow at 9 AM due to market developments.
 
-Can we meet next Friday at 2PM in the conference room? I'll send out the agenda tomorrow.
+IMMEDIATE ACTION REQUIRED:
+- Q4 financial projections (Finance Team - due by 5 PM today)
+- Competitive market analysis (Marketing - due by 5 PM today)  
+- Risk mitigation strategies (Operations - due by 5 PM today)
 
-Please confirm your availability by end of day.
+This is critical for our investor relations and future funding. No exceptions.
 
-Best regards,
-Sarah`,
+Please confirm receipt and expected delivery time immediately.
+
+Jennifer Williams
+CEO`,
     timestamp: '2024-03-15T09:30:00Z',
     isRead: false,
     isImportant: true,
-    urgency: 'high',
+    urgency: 'medium', // AI should detect this as HIGH due to CEO + urgent deadline
     labels: ['Action Needed', 'Meeting Request'],
     meetingRequest: {
-      title: 'Q4 Strategy Meeting',
-      date: '2024-03-19',
-      time: '14:00',
-      location: 'Conference Room A',
-      attendees: ['sarah.chen@company.com', 'you@company.com']
+      title: 'Emergency Board Meeting',
+      date: '2024-03-16',
+      time: '09:00',
+      location: 'Executive Conference Room',
+      attendees: ['ceo@company.com', 'board@company.com', 'you@company.com']
     }
   },
   {
@@ -90,28 +95,38 @@ Alex`,
   {
     id: '4',
     sender: {
-      name: 'Lisa Park',
-      email: 'lisa.park@vendor.com',
+      name: 'Security Operations Center',
+      email: 'soc@company.com',
       avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?w=100&h=100&fit=crop&crop=face'
     },
-    subject: 'Urgent: Contract Amendment Required',
-    preview: 'We need to make some urgent amendments to the contract we discussed. Can we hop on a call today?',
-    content: `Hi,
+    subject: '🚨 CRITICAL SECURITY BREACH DETECTED - IMMEDIATE ACTION REQUIRED',
+    preview: 'Unauthorized access attempt detected on production servers. Systems compromised. Shut down all external access immediately.',
+    content: `SECURITY ALERT - LEVEL 1 INCIDENT
 
-I hope you're doing well. We need to make some urgent amendments to the contract we discussed last week.
+Unauthorized access detected on production servers at 06:15 AM.
 
-There are some changes in our compliance requirements that affect the terms. Can we hop on a call today to discuss? I'm available between 1-4 PM.
+IMMEDIATE ACTIONS REQUIRED:
+1. All external API access must be shut down NOW
+2. Change all admin passwords immediately
+3. Isolate affected servers (srv-prod-01, srv-prod-03)
+4. Contact incident response team: 555-SECURITY
 
-Please let me know what works for you.
+AFFECTED SYSTEMS:
+- Customer database servers
+- Payment processing systems  
+- Internal communications
 
-Thanks,
-Lisa Park
-Senior Account Manager`,
+Time is critical. Every minute increases data exposure risk.
+
+Call emergency hotline: 555-EMERGENCY
+
+Security Operations Center
+LEVEL 1 INCIDENT #SEC-2024-0315-001`,
     timestamp: '2024-03-15T06:30:00Z',
     isRead: false,
     isImportant: true,
-    urgency: 'high',
-    labels: ['Action Needed', 'Urgent']
+    urgency: 'low', // AI should detect this as HIGH due to security breach
+    labels: ['Security', 'Emergency']
   },
   {
     id: '5',
@@ -140,27 +155,38 @@ HR Department`,
   {
     id: '6',
     sender: {
-      name: 'David Kim',
-      email: 'david.kim@company.com',
+      name: 'BigClient Corp Legal',
+      email: 'legal@bigclient.com',
       avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?w=100&h=100&fit=crop&crop=face'
     },
-    subject: 'Coffee catch-up this week?',
-    preview: 'Hey! It\'s been a while since we caught up. Are you free for coffee sometime this week?',
-    content: `Hey!
+    subject: 'CONTRACT TERMINATION NOTICE - 30 Day Period Begins',
+    preview: 'Due to recent service issues, BigClient Corp is invoking the 30-day termination clause in our $2M annual contract.',
+    content: `Legal Department,
 
-It's been a while since we caught up. Are you free for coffee sometime this week?
+This serves as formal notice that BigClient Corp is invoking the 30-day termination clause (Section 12.3) in our Master Service Agreement dated January 15, 2023.
 
-I'd love to hear about how your new project is going and share some updates on my end too.
+REASONS FOR TERMINATION:
+- Repeated service outages affecting our operations
+- Failure to meet SLA requirements for 3 consecutive months  
+- Unresolved security compliance issues
 
-Let me know what works for you!
+FINANCIAL IMPACT:
+- Annual contract value: $2,000,000
+- Early termination penalties apply
+- Outstanding invoices must be settled
 
-Best,
-David`,
+This termination will be effective April 15, 2024 unless these issues are resolved to our satisfaction within 15 days.
+
+We require an immediate response with your remediation plan.
+
+Legal Department
+BigClient Corp
+Contract #MSA-2023-001`,
     timestamp: '2024-03-14T11:20:00Z',
     isRead: false,
     isImportant: false,
-    urgency: 'low',
-    labels: ['Social', 'Meeting Request']
+    urgency: 'medium', // AI should detect this as HIGH due to contract termination + $2M value
+    labels: ['Legal', 'Contract']
   },
   {
     id: '7',
