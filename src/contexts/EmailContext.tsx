@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Email } from '../types/email';
+import { mockEmails } from '../data/mockEmails';
 
 interface EmailContextType {
   emails: Email[];
@@ -27,8 +28,7 @@ interface EmailContextType {
 const EmailContext = createContext<EmailContextType | undefined>(undefined);
 
 export function EmailProvider({ children }: { children: React.ReactNode }) {
-  // Minimal state, all empty or no-op
-  const [emails, setEmails] = useState<Email[]>([]);
+  const [emails, setEmails] = useState<Email[]>(mockEmails);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [currentView, setCurrentView] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,20 +36,93 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // All functions are no-ops or return empty values
-  const markAsRead = (_emailId: string) => {};
-  const markAsImportant = (_emailId: string) => {};
-  const archiveEmail = (_emailId: string) => {};
-  const getFilteredEmails = () => [];
-  const generateSummary = async (_email: Email) => '';
-  const generateReply = async (_email: Email) => '';
+  const markAsRead = (emailId: string) => {
+    setEmails(emails.map(email => 
+      email.id === emailId ? { ...email, isRead: true } : email
+    ));
+  };
+
+  const markAsImportant = (emailId: string) => {
+    setEmails(emails.map(email => 
+      email.id === emailId ? { ...email, isImportant: !email.isImportant } : email
+    ));
+  };
+
+  const archiveEmail = (emailId: string) => {
+    setEmails(emails.filter(email => email.id !== emailId));
+  };
+
+  const getFilteredEmails = () => {
+    let filtered = [...emails];
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(email => 
+        email.subject.toLowerCase().includes(query) ||
+        email.sender.name.toLowerCase().includes(query) ||
+        email.preview.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply view mode filter
+    switch (currentView) {
+      case 'priority':
+        filtered.sort((a, b) => {
+          if (a.urgency === 'high' && b.urgency !== 'high') return -1;
+          if (a.urgency !== 'high' && b.urgency === 'high') return 1;
+          if (a.isImportant && !b.isImportant) return -1;
+          if (!a.isImportant && b.isImportant) return 1;
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        });
+        break;
+      case 'custom':
+        filtered = filtered.filter(email => 
+          email.urgency === 'high' || 
+          email.isImportant || 
+          email.labels.includes('Action Needed')
+        );
+        break;
+      default:
+        filtered.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+    }
+
+    return filtered;
+  };
+
+  const generateSummary = async (email: Email) => {
+    return `Summary of ${email.subject}: ${email.preview}`;
+  };
+
+  const generateReply = async (email: Email) => {
+    return `Thank you for your email regarding ${email.subject}. I will review this and get back to you soon.`;
+  };
+
   const authenticateOutlook = async () => {
     setIsAuthenticated(true);
     setUser({ id: 'placeholder', name: 'User', email: 'user@example.com' });
   };
-  const syncEmails = async () => {};
-  const sendReply = async (_emailId: string, _content: string) => false;
-  const scheduleMeeting = async (_meetingData: any) => ({});
+
+  const syncEmails = async () => {
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setEmails(mockEmails);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendReply = async (emailId: string, content: string) => {
+    return true;
+  };
+
+  const scheduleMeeting = async (meetingData: any) => {
+    return {};
+  };
 
   return (
     <EmailContext.Provider value={{

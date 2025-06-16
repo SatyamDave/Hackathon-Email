@@ -1,8 +1,9 @@
 {
-  "name": "smartinbox-ai-email-system",
+  "name": "copilot-failure-insights",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "A standalone application for analyzing GitHub Copilot failure insights",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -12,11 +13,16 @@
   "dependencies": {
     "@azure/msal-browser": "^4.13.1",
     "@azure/msal-react": "^3.0.12",
+    "@fluentui/react": "^8.123.0",
     "@supabase/supabase-js": "2.39.0",
+    "axios": "^1.6.7",
     "date-fns": "3.0.0",
     "lucide-react": "0.344.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "react-query": "^3.39.3",
+    "react-router-dom": "^6.22.3",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/node": "20.11.24",
