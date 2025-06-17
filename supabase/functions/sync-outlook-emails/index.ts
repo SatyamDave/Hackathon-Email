@@ -32,6 +32,15 @@ interface OutlookEmail {
   conversationId: string;
 }
 
+// CORS helper
+function withCORS(response: Response) {
+  const newHeaders = new Headers(response.headers);
+  newHeaders.set('Access-Control-Allow-Origin', '*');
+  newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  return new Response(response.body, { ...response, headers: newHeaders });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -131,7 +140,7 @@ Alex`,
       })
     );
 
-    return new Response(
+    return withCORS(new Response(
       JSON.stringify({
         success: true,
         emails: processedEmails,
@@ -140,14 +149,13 @@ Alex`,
       {
         headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders,
         },
       }
-    );
+    ));
 
   } catch (error) {
     console.error('Outlook sync error:', error);
-    return new Response(
+    return withCORS(new Response(
       JSON.stringify({
         success: false,
         error: error.message
@@ -156,10 +164,9 @@ Alex`,
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders,
         },
       }
-    );
+    ));
   }
 });
 

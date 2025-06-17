@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Email } from '../types/email';
-import { mockEmails } from '../data/mockEmails';
 import { AzureOpenAIService } from '../services/azureOpenAI';
+import { outlookService } from '../services/outlookService';
+import { useMsal } from '@azure/msal-react';
+import { loginRequest } from '../msalConfig';
 
 interface EmailContextType {
   emails: Email[];
@@ -11,6 +13,8 @@ interface EmailContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   user: any;
+  accessToken: string | null;
+  error: string | null;
   setSelectedEmail: (email: Email | null) => void;
   setCurrentView: (view: string) => void;
   setSearchQuery: (query: string) => void;
@@ -34,13 +38,17 @@ interface EmailContextType {
 const EmailContext = createContext<EmailContextType | undefined>(undefined);
 
 export function EmailProvider({ children }: { children: React.ReactNode }) {
-  const [emails, setEmails] = useState<Email[]>(mockEmails);
+  const { instance, accounts } = useMsal();
+  const account = accounts[0];
+  const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [currentView, setCurrentView] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [hasAIPriorities, setHasAIPriorities] = useState(false);
   const [hasCustomView, setHasCustomView] = useState(false);
   const [customCriteria, setCustomCriteria] = useState('');
@@ -116,15 +124,26 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
 
   const authenticateOutlook = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      // Simulate authentication delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      if (!account) throw new Error('No account found. Please sign in.');
+      const response = await instance.acquireTokenSilent({
+        ...loginRequest,
+        account,
+      });
       setIsAuthenticated(true);
-      setUser({ id: 'demo-user', name: 'Demo User', email: 'demo@example.com' });
-      
-      // Keep using mock data for demo purposes
-      setEmails(mockEmails);
+      setUser(account);
+      setAccessToken(response.accessToken);
+      // Fetch emails after authentication
+      const outlookEmails = await outlookService.syncEmails(account.username, response.accessToken);
+      setEmails(outlookEmails);
+    } catch (error: any) {
+      setIsAuthenticated(false);
+      setUser(null);
+      setAccessToken(null);
+      setEmails([]);
+      setError(error.message || 'Outlook authentication failed.');
+      console.error('Outlook authentication failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -132,10 +151,15 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
 
   const syncEmails = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setEmails(mockEmails);
+      if (!user || !accessToken) throw new Error('Not authenticated. Please sign in.');
+      const outlookEmails = await outlookService.syncEmails(user.username, accessToken);
+      setEmails(outlookEmails);
+    } catch (error: any) {
+      setEmails([]);
+      setError(error.message || 'Failed to sync emails.');
+      console.error('Failed to sync emails:', error);
     } finally {
       setIsLoading(false);
     }
@@ -207,6 +231,13 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  useEffect(() => {
+    if (account && !isAuthenticated) {
+      authenticateOutlook();
+    }
+    // eslint-disable-next-line
+  }, [account]);
+
   return (
     <EmailContext.Provider value={{
       emails,
@@ -216,6 +247,8 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       isAuthenticated,
       user,
+      accessToken,
+      error,
       setSelectedEmail,
       setCurrentView,
       setSearchQuery,

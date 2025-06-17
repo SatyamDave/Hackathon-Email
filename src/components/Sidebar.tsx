@@ -5,7 +5,7 @@ import { useMsal } from '@azure/msal-react';
 
 export default function Sidebar() {
   const { emails, syncEmails, isLoading } = useEmail();
-  const { accounts } = useMsal();
+  const { accounts, instance } = useMsal();
   const user = accounts[0];
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '';
   
@@ -26,6 +26,10 @@ export default function Sidebar() {
     } catch (error) {
       console.error('Sync failed:', error);
     }
+  };
+
+  const handleLogout = () => {
+    instance.logoutPopup();
   };
 
   return (
@@ -105,6 +109,13 @@ export default function Sidebar() {
           <Settings className="w-5 h-5" />
           <span>Settings</span>
         </a>
+        <button
+          onClick={handleLogout}
+          className="flex items-center space-x-3 px-4 py-3 mt-2 w-full text-dark-text-secondary hover:bg-dark-muted hover:text-dark-text-primary rounded-lg transition-colors font-medium"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
+          <span>Logout</span>
+        </button>
       </div>
     </div>
   );
