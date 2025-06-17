@@ -4,6 +4,7 @@ import { AzureOpenAIService } from '../services/azureOpenAI';
 import { outlookService } from '../services/outlookService';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from '../msalConfig';
+import { supabase } from '../lib/supabase';
 
 interface EmailContextType {
   emails: Email[];
@@ -52,6 +53,7 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
   const [hasAIPriorities, setHasAIPriorities] = useState(false);
   const [hasCustomView, setHasCustomView] = useState(false);
   const [customCriteria, setCustomCriteria] = useState('');
+  const [userUUID, setUserUUID] = useState<string | null>(null);
 
   const markAsRead = (emailId: string) => {
     setEmails(emails.map(email => 
@@ -127,16 +129,56 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     try {
       if (!account) throw new Error('No account found. Please sign in.');
-      const response = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account,
-      });
-      setIsAuthenticated(true);
-      setUser(account);
-      setAccessToken(response.accessToken);
-      // Fetch emails after authentication
-      const outlookEmails = await outlookService.syncEmails(account.username, response.accessToken);
-      setEmails(outlookEmails);
+      // Fetch user UUID from Supabase users table
+      let userUUID: string | null = null;
+      let { data: userRows, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', account.username)
+        .single();
+      if (userError || !userRows) {
+        // User not found, create new user
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            email: account.username,
+            name: account.name || account.username,
+          })
+          .select('id')
+          .single();
+        if (insertError || !newUser) throw new Error('Failed to create user in database.');
+        userUUID = newUser.id;
+      } else {
+        userUUID = userRows.id;
+      }
+      setUserUUID(userUUID);
+      if (!userUUID) throw new Error('User UUID not found or created.');
+      // First try silent token acquisition
+      try {
+        const response = await instance.acquireTokenSilent({
+          ...loginRequest,
+          account,
+        });
+        setIsAuthenticated(true);
+        setUser(account);
+        setAccessToken(response.accessToken);
+        // Fetch emails after authentication
+        const outlookEmails = await outlookService.syncEmails(userUUID, response.accessToken);
+        setEmails(outlookEmails);
+      } catch (silentError) {
+        // If silent token acquisition fails, try interactive login
+        const response = await instance.acquireTokenPopup({
+          ...loginRequest,
+          account,
+          prompt: 'consent' // Force consent prompt
+        });
+        setIsAuthenticated(true);
+        setUser(account);
+        setAccessToken(response.accessToken);
+        // Fetch emails after authentication
+        const outlookEmails = await outlookService.syncEmails(userUUID, response.accessToken);
+        setEmails(outlookEmails);
+      }
     } catch (error: any) {
       setIsAuthenticated(false);
       setUser(null);
@@ -153,8 +195,8 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      if (!user || !accessToken) throw new Error('Not authenticated. Please sign in.');
-      const outlookEmails = await outlookService.syncEmails(user.username, accessToken);
+      if (!userUUID || !accessToken) throw new Error('Not authenticated. Please sign in.');
+      const outlookEmails = await outlookService.syncEmails(userUUID, accessToken);
       setEmails(outlookEmails);
     } catch (error: any) {
       setEmails([]);

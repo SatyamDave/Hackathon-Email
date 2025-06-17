@@ -5,11 +5,15 @@
   and processes them with AI for smart inbox features.
 */
 
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Client } from 'https://esm.sh/@microsoft/microsoft-graph-client@3.0.7'
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
 interface OutlookEmail {
   id: string;
@@ -35,140 +39,102 @@ interface OutlookEmail {
 // CORS helper
 function withCORS(response: Response) {
   const newHeaders = new Headers(response.headers);
-  newHeaders.set('Access-Control-Allow-Origin', '*');
-  newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    newHeaders.set(key, value);
+  });
   return new Response(response.body, { ...response, headers: newHeaders });
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { userId, accessToken } = await req.json();
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
 
-    // Mock Outlook Graph API response
-    const mockOutlookEmails: OutlookEmail[] = [
+    // Create Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
-        id: "outlook_msg_001",
-        subject: "Q4 Strategy Meeting - Action Required",
-        bodyPreview: "Hi team, we need to schedule our Q4 strategy session. Can we meet next Friday at 2PM?",
-        body: {
-          content: `Hi team,
-
-I hope this email finds you well. We need to schedule our Q4 strategy session to discuss our upcoming initiatives and budget allocation.
-
-Can we meet next Friday at 2PM in the conference room? I'll send out the agenda tomorrow.
-
-Please confirm your availability by end of day.
-
-Best regards,
-Sarah`,
-          contentType: "text"
+        global: {
+          headers: { Authorization: authHeader },
         },
-        from: {
-          emailAddress: {
-            name: "Sarah Chen",
-            address: "sarah.chen@company.com"
-          }
-        },
-        receivedDateTime: new Date().toISOString(),
-        isRead: false,
-        importance: "high",
-        hasAttachments: false,
-        conversationId: "thread_001"
-      },
-      {
-        id: "outlook_msg_002",
-        subject: "Project Alpha - Final Review Complete",
-        bodyPreview: "Great news! I've completed the final review of Project Alpha. Everything looks good to go.",
-        body: {
-          content: `Hi there,
-
-Great news! I've completed the final review of Project Alpha and everything looks good to go.
-
-Key findings:
-- All security requirements have been met
-- Performance benchmarks exceeded by 15%
-- Documentation is comprehensive
-
-We're ready for launch next week. Let me know if you need anything else.
-
-Cheers,
-Alex`,
-          contentType: "text"
-        },
-        from: {
-          emailAddress: {
-            name: "Alex Rodriguez",
-            address: "alex.rodriguez@company.com"
-          }
-        },
-        receivedDateTime: new Date(Date.now() - 3600000).toISOString(),
-        isRead: false,
-        importance: "normal",
-        hasAttachments: false,
-        conversationId: "thread_002"
       }
-    ];
+    )
 
-    // Process each email with AI
-    const processedEmails = await Promise.all(
-      mockOutlookEmails.map(async (email) => {
-        // AI Analysis
-        const aiAnalysis = await analyzeEmailWithAI(email);
-        
-        return {
-          outlook_message_id: email.id,
-          sender_name: email.from.emailAddress.name,
-          sender_email: email.from.emailAddress.address,
-          subject: email.subject,
-          content: email.body.content,
-          preview: email.bodyPreview,
-          received_at: email.receivedDateTime,
-          is_read: email.isRead,
-          urgency: mapImportanceToUrgency(email.importance),
-          has_attachments: email.hasAttachments,
-          ai_analysis: aiAnalysis,
-          conversation_id: email.conversationId
-        };
+    // Get the request body
+    const { userId, accessToken } = await req.json()
+
+    // Initialize Microsoft Graph client
+    const graphClient = Client.init({
+      authProvider: (done) => {
+        done(null, accessToken)
+      }
+    })
+
+    // Fetch emails from Microsoft Graph
+    const response = await graphClient
+      .api('/me/messages')
+      .select('id,subject,bodyPreview,body,from,receivedDateTime,isRead,importance,hasAttachments,conversationId')
+      .top(50)
+      .orderby('receivedDateTime DESC')
+      .get()
+
+    // Process emails
+    const processedEmails = response.value.map((email: any) => ({
+      user_id: userId,
+      outlook_message_id: email.id,
+      sender_name: email.from.emailAddress.name,
+      sender_email: email.from.emailAddress.address,
+      subject: email.subject,
+      content: email.body.content,
+      preview: email.bodyPreview,
+      received_at: email.receivedDateTime,
+      is_read: email.isRead,
+      urgency: email.importance === 'high' ? 'high' : 'normal',
+      has_attachments: email.hasAttachments,
+      ai_processed: false
+    }))
+
+    // Store emails in Supabase
+    const { data: insertedEmails, error } = await supabaseClient
+      .from('emails')
+      .upsert(processedEmails, {
+        onConflict: 'outlook_message_id',
+        ignoreDuplicates: false
       })
-    );
+      .select()
 
-    return withCORS(new Response(
-      JSON.stringify({
-        success: true,
-        emails: processedEmails,
-        synced_at: new Date().toISOString()
-      }),
+    if (error) {
+      throw error
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, data: insertedEmails }),
       {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       }
-    ));
+    )
 
   } catch (error) {
-    console.error('Outlook sync error:', error);
-    return withCORS(new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
-      }),
+    console.error('Error:', error.message)
+    return new Response(
+      JSON.stringify({ error: error.message }),
       {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
       }
-    ));
+    )
   }
-});
+})
 
 async function analyzeEmailWithAI(email: OutlookEmail) {
   // Simulate AI analysis

@@ -24,9 +24,7 @@ function LandingPage({ onStart }: { onStart: () => void }) {
           Get Started
         </button>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-8 z-0">
-        <span className="text-dark-text-secondary text-xs">Inspired by rabbit.tech &mdash; Built for you</span>
-      </div>
+      <span className="text-dark-text-secondary text-xs">Inspired by rabbit.tech &mdash; Built for you</span>
     </div>
   );
 }
@@ -54,7 +52,6 @@ function AppContent() {
 
 export default function App() {
   const [started, setStarted] = useState(false);
-  
   return started ? (
     <div className="dark min-h-screen bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-muted text-dark-text-primary">
       <AppContent />

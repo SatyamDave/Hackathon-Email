@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS day_plan_items (
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_threads ENABLE ROW LEVEL SECURITY;
-ALTER TABLE emails ENABLE ROW LEVEL SECURITY;
+ALTER TABLE emails DISABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auto_replies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meeting_requests ENABLE ROW LEVEL SECURITY;
@@ -177,13 +177,6 @@ CREATE POLICY "Users can read own email threads"
   TO authenticated
   USING (user_id = auth.uid());
 
--- RLS Policies for emails
-CREATE POLICY "Users can read own emails"
-  ON emails
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid());
-
 -- RLS Policies for ai_summaries
 CREATE POLICY "Users can read own AI summaries"
   ON ai_summaries
@@ -193,7 +186,7 @@ CREATE POLICY "Users can read own AI summaries"
     EXISTS (
       SELECT 1 FROM emails 
       WHERE emails.id = ai_summaries.email_id 
-      AND emails.user_id = auth.uid()
+      AND emails.user_id = auth.uid()::text
     )
   );
 
@@ -206,7 +199,7 @@ CREATE POLICY "Users can read own auto replies"
     EXISTS (
       SELECT 1 FROM emails 
       WHERE emails.id = auto_replies.email_id 
-      AND emails.user_id = auth.uid()
+      AND emails.user_id = auth.uid()::text
     )
   );
 
@@ -219,7 +212,7 @@ CREATE POLICY "Users can read own meeting requests"
     EXISTS (
       SELECT 1 FROM emails 
       WHERE emails.id = meeting_requests.email_id 
-      AND emails.user_id = auth.uid()
+      AND emails.user_id = auth.uid()::text
     )
   );
 
@@ -232,7 +225,7 @@ CREATE POLICY "Users can read own email labels"
     EXISTS (
       SELECT 1 FROM emails 
       WHERE emails.id = email_labels.email_id 
-      AND emails.user_id = auth.uid()
+      AND emails.user_id = auth.uid()::text
     )
   );
 
@@ -241,14 +234,14 @@ CREATE POLICY "Users can read own preferences"
   ON user_preferences
   FOR ALL
   TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid()::uuid);
 
 -- RLS Policies for day_plan_items
 CREATE POLICY "Users can read own day plan items"
   ON day_plan_items
   FOR ALL
   TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid()::uuid);
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_emails_user_id ON emails(user_id);

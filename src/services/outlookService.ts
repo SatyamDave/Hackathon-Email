@@ -1,3 +1,10 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
 export interface OutlookAuthConfig {
   clientId: string;
   tenantId: string;
@@ -66,48 +73,77 @@ class OutlookService {
   // Sync emails from Outlook
   async syncEmails(userId: string, accessToken: string): Promise<any[]> {
     try {
-      // Call our Supabase Edge Function to sync emails
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-outlook-emails`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          accessToken
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to sync emails');
+      console.log('[OutlookService] syncEmails called with:', { userId, accessToken });
+      if (userId && userId.includes('@')) {
+        console.warn('[OutlookService] userId looks like an email, but emails.user_id expects a UUID. This may cause issues.');
       }
 
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Email sync failed');
-      }
+      // Mock Outlook Graph API response for now
+      const mockOutlookEmails = [
+        {
+          id: "outlook_msg_001",
+          subject: "Q4 Strategy Meeting - Action Required",
+          bodyPreview: "Hi team, we need to schedule our Q4 strategy session. Can we meet next Friday at 2PM?",
+          body: {
+            content: `Hi team,
 
-      // Store emails in Supabase
-      const emailsToInsert = result.emails.map((email: any) => ({
+I hope this email finds you well. We need to schedule our Q4 strategy session to discuss our upcoming initiatives and budget allocation.
+
+Can we meet next Friday at 2PM in the conference room? I'll send out the agenda tomorrow.
+
+Please confirm your availability by end of day.
+
+Best regards,
+Sarah`,
+            contentType: "text"
+          },
+          from: {
+            emailAddress: {
+              name: "Sarah Chen",
+              address: "sarah.chen@company.com"
+            }
+          },
+          receivedDateTime: new Date().toISOString(),
+          isRead: false,
+          importance: "high",
+          hasAttachments: false,
+          conversationId: "thread_001"
+        }
+      ];
+
+      // Process emails
+      const processedEmails = mockOutlookEmails.map(email => ({
         user_id: userId,
-        outlook_message_id: email.outlook_message_id,
-        sender_name: email.sender_name,
-        sender_email: email.sender_email,
+        outlook_message_id: email.id,
+        sender_name: email.from.emailAddress.name,
+        sender_email: email.from.emailAddress.address,
         subject: email.subject,
-        content: email.content,
-        preview: email.preview,
-        received_at: email.received_at,
-        is_read: email.is_read,
-        urgency: email.urgency,
-        has_attachments: email.has_attachments,
+        content: email.body.content,
+        preview: email.bodyPreview,
+        received_at: email.receivedDateTime,
+        is_read: email.isRead,
+        urgency: email.importance === 'high' ? 'high' : 'normal',
+        has_attachments: email.hasAttachments,
         ai_processed: false
       }));
 
+      // First, check if the emails table exists
+      const { error: tableCheckError } = await supabase
+        .from('emails')
+        .select('id')
+        .limit(1);
+
+      if (tableCheckError) {
+        if (tableCheckError.code === '42P01') { // Table doesn't exist
+          throw new Error('The emails table does not exist. Please run the database migration first.');
+        }
+        throw new Error(`Database error: ${tableCheckError.message}`);
+      }
+
+      // Store emails in Supabase
       const { data: insertedEmails, error } = await supabase
         .from('emails')
-        .upsert(emailsToInsert, { 
+        .upsert(processedEmails, { 
           onConflict: 'outlook_message_id',
           ignoreDuplicates: false 
         })
@@ -115,7 +151,7 @@ class OutlookService {
 
       if (error) {
         console.error('Error storing emails:', error);
-        throw error;
+        throw new Error(`Failed to store emails: ${error.message}`);
       }
 
       // Process emails with AI
