@@ -129,6 +129,43 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     try {
       if (!account) throw new Error('No account found. Please sign in.');
+      
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('Supabase not available, using mock authentication');
+        // Use mock user UUID for demo purposes
+        const mockUserUUID = 'mock-user-' + Date.now();
+        setUserUUID(mockUserUUID);
+        
+        // Proceed with authentication without database operations
+        try {
+          const response = await instance.acquireTokenSilent({
+            ...loginRequest,
+            account,
+          });
+          setIsAuthenticated(true);
+          setUser(account);
+          setAccessToken(response.accessToken);
+          // Fetch emails after authentication
+          const outlookEmails = await outlookService.syncEmails(mockUserUUID, response.accessToken);
+          setEmails(outlookEmails);
+        } catch (silentError) {
+          // If silent token acquisition fails, try interactive login
+          const response = await instance.acquireTokenPopup({
+            ...loginRequest,
+            account,
+            prompt: 'consent' // Force consent prompt
+          });
+          setIsAuthenticated(true);
+          setUser(account);
+          setAccessToken(response.accessToken);
+          // Fetch emails after authentication
+          const outlookEmails = await outlookService.syncEmails(mockUserUUID, response.accessToken);
+          setEmails(outlookEmails);
+        }
+        return;
+      }
+
       // Fetch user UUID from Supabase users table
       let userUUID: string | null = null;
       let { data: userRows, error: userError } = await supabase
@@ -153,6 +190,7 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
       }
       setUserUUID(userUUID);
       if (!userUUID) throw new Error('User UUID not found or created.');
+      
       // First try silent token acquisition
       try {
         const response = await instance.acquireTokenSilent({

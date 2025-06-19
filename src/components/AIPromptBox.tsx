@@ -196,7 +196,9 @@ export default function AIPromptBox() {
                 className="p-1.5 text-dark-text-secondary hover:text-dark-text-primary transition-colors"
                 tabIndex={-1}
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className={`w-4 h-4 text-dark-accent transition-opacity duration-200 ${
+                  prompt ? 'opacity-100' : 'opacity-50'
+                }`} />
               </button>
               <button
                 type="submit"

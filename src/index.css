@@ -2,106 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background: #111;
-  color: #f3f3f3;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  margin: 0;
-  padding: 0;
+@layer base {
+  body {
+    @apply bg-dark-primary text-dark-text-primary;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
 }
 
-.app-main-bg {
-  background: #181818;
+@layer components {
+  .app-container {
+    @apply min-h-screen bg-gradient-subtle from-dark-primary via-dark-secondary to-dark-primary;
+  }
+
+  .button-primary {
+    @apply px-4 py-2 bg-gradient-subtle from-dark-accent to-dark-accent-hover text-dark-primary rounded-lg 
+           transition-all duration-200 hover:from-dark-accent-hover hover:to-dark-accent 
+           disabled:opacity-50 shadow-glow disabled:shadow-none font-medium;
+  }
+
+  .button-secondary {
+    @apply px-4 py-2 bg-dark-surface text-dark-text-primary border border-dark-border rounded-lg
+           transition-all duration-200 hover:bg-dark-muted hover:border-dark-accent
+           disabled:opacity-50 font-medium;
+  }
+
+  .input-primary {
+    @apply w-full px-4 py-2 bg-dark-primary border border-dark-border rounded-lg
+           focus:ring-2 focus:ring-dark-accent focus:border-transparent
+           transition-all duration-200 placeholder-dark-text-secondary text-dark-text-primary;
+  }
+
+  .card {
+    @apply bg-dark-surface border border-dark-border rounded-lg shadow-lg;
+  }
+
+  .nav-link {
+    @apply flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200
+           text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-muted;
+  }
+
+  .nav-link.active {
+    @apply bg-dark-accent text-dark-primary shadow-glow;
+  }
 }
 
-.sidebar {
-  background: #111;
-  color: #fff;
-  border-right: 1px solid #222;
-}
-
-.sidebar .active, .sidebar .active-nav {
-  background: #22c55e;
-  color: #111;
-  border-radius: 8px;
-}
-
-.sidebar .nav-link {
-  color: #f3f3f3;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-.sidebar .nav-link:hover {
-  background: #222;
-  color: #22c55e;
-}
-
-.button-primary, .fluentui-primary {
-  background: #22c55e !important;
-  color: #fff !important;
-  border-radius: 8px !important;
-  border: none !important;
-  font-weight: 600;
-  transition: background 0.2s;
-}
-.button-primary:hover, .fluentui-primary:hover {
-  background: #16a34a !important;
-}
-
-.button-secondary {
-  background: #fff;
-  color: #22c55e;
-  border: 1px solid #22c55e;
-  border-radius: 8px;
-}
-
-.tab-bar {
-  background: #181818;
-  border-bottom: 1px solid #222;
-}
-.tab-bar .tab {
-  color: #f3f3f3;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-weight: 500;
-  border-radius: 0;
-  transition: border 0.2s, color 0.2s;
-}
-.tab-bar .tab.active {
-  color: #22c55e;
-  border-bottom: 2px solid #22c55e;
-  background: #181818;
-}
-
-.label-green {
-  background: #22c55e;
-  color: #fff;
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.day-planner {
-  background: #fff;
-  color: #111;
-  border-left: 1px solid #e5e7eb;
-  box-shadow: 0 2px 12px #0001;
-}
-
-input, textarea, .fluentui-input {
-  background: #181818 !important;
-  color: #f3f3f3 !important;
-  border: 1px solid #222 !important;
-  border-radius: 6px !important;
-}
-
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  background: #181818;
+  @apply w-2 bg-dark-surface;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #222;
-  border-radius: 8px;
+  @apply bg-dark-muted hover:bg-dark-accent rounded-full transition-colors duration-200;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark-surface;
+}
+
+/* Animations */
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Focus Styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-dark-accent ring-offset-2 ring-offset-dark-primary;
 }

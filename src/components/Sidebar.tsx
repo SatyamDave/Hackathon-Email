@@ -1,5 +1,5 @@
 import React from 'react';
-import { Inbox, Star, Archive, Send, FileText, Settings, Brain, FolderSync as Sync } from 'lucide-react';
+import { Inbox, Star, Archive, Send, FileText, Settings, Brain, FolderSync as Sync, LogOut } from 'lucide-react';
 import { useEmail } from '../contexts/EmailContext';
 import { useMsal } from '@azure/msal-react';
 
@@ -33,11 +33,11 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-gradient-to-b from-dark-primary via-dark-secondary to-dark-primary text-dark-text-primary flex flex-col shadow-xl border-r border-dark-muted">
+    <div className="w-64 bg-gradient-subtle from-dark-primary to-dark-surface text-dark-text-primary flex flex-col shadow-xl border-r border-dark-border">
       {/* User Profile */}
-      <div className="p-6 border-b border-dark-muted bg-dark-secondary">
+      <div className="p-6 border-b border-dark-border bg-dark-surface/50 backdrop-blur-sm">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-dark-accent rounded-full flex items-center justify-center text-dark-primary font-semibold">
+          <div className="w-12 h-12 bg-gradient-radial from-dark-accent to-dark-accent-muted rounded-full flex items-center justify-center text-dark-primary font-semibold shadow-glow">
             {initials || 'U'}
           </div>
           <div>
@@ -48,9 +48,9 @@ export default function Sidebar() {
       </div>
 
       {/* Header */}
-      <div className="p-6 border-b border-dark-muted">
+      <div className="p-6 border-b border-dark-border">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-dark-accent rounded-lg flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-gradient-radial from-dark-accent to-dark-accent-muted rounded-lg flex items-center justify-center shadow-glow">
             <Brain className="w-6 h-6 text-dark-primary" />
           </div>
           <div>
@@ -61,59 +61,77 @@ export default function Sidebar() {
       </div>
 
       {/* Sync Button */}
-      <div className="p-4 border-b border-dark-muted">
+      <div className="p-4 border-b border-dark-border">
         <button
           onClick={handleSync}
           disabled={isLoading}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-dark-accent hover:bg-dark-accent/90 text-dark-primary rounded-lg transition-colors disabled:opacity-50 shadow-md"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-gradient-subtle from-dark-accent to-dark-accent-hover text-dark-primary rounded-lg transition-all duration-200 hover:from-dark-accent-hover hover:to-dark-accent disabled:opacity-50 shadow-glow disabled:shadow-none"
         >
           <Sync className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>{isLoading ? 'Syncing...' : 'Sync Emails'}</span>
+          <span className="font-medium">{isLoading ? 'Syncing...' : 'Sync Emails'}</span>
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
+      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <ul className="space-y-1">
           {menuItems.map((item, index) => (
             <li key={index}>
-              <a
-                href="#"
-                className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors font-medium shadow-sm
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Handle navigation here if needed
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 font-medium group
                   ${item.isActive
-                    ? 'bg-dark-accent text-dark-primary'
-                    : 'text-dark-text-secondary hover:bg-dark-muted hover:text-dark-text-primary'}
+                    ? 'bg-dark-accent text-dark-primary shadow-glow'
+                    : 'text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-muted'}
                 `}
               >
                 <div className="flex items-center space-x-3">
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
+                    item.isActive ? '' : 'group-hover:text-dark-accent'
+                  }`} />
                   <span>{item.label}</span>
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className="bg-dark-muted text-dark-text-secondary px-2 py-1 rounded-full text-xs">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    item.isActive
+                      ? 'bg-dark-primary/20 text-dark-primary'
+                      : 'bg-dark-surface text-dark-text-secondary'
+                  }`}>
                     {item.count}
                   </span>
                 )}
-              </a>
+              </button>
             </li>
           ))}
         </ul>
       </nav>
 
-      {/* Settings */}
-      <div className="p-4 border-t border-dark-muted">
-        <a
-          href="#"
-          className="flex items-center space-x-3 px-4 py-3 text-dark-text-secondary hover:bg-dark-muted hover:text-dark-text-primary rounded-lg transition-colors font-medium"
-        >
-          <Settings className="w-5 h-5" />
-          <span>Settings</span>
-        </a>
+      {/* Footer */}
+      <div className="p-4 border-t border-dark-border space-y-2">
         <button
-          onClick={handleLogout}
-          className="flex items-center space-x-3 px-4 py-3 mt-2 w-full text-dark-text-secondary hover:bg-dark-muted hover:text-dark-text-primary rounded-lg transition-colors font-medium"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Handle settings click
+          }}
+          className="flex items-center space-x-3 px-4 py-3 w-full text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-muted rounded-lg transition-all duration-200 font-medium group"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
+          <Settings className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90 group-hover:text-dark-accent" />
+          <span>Settings</span>
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleLogout();
+          }}
+          className="flex items-center space-x-3 px-4 py-3 w-full text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-muted rounded-lg transition-all duration-200 font-medium group"
+        >
+          <LogOut className="w-5 h-5 transition-transform duration-200 group-hover:-translate-x-1 group-hover:text-dark-accent" />
           <span>Logout</span>
         </button>
       </div>

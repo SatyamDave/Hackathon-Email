@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Paperclip, Calendar, AlertCircle, Brain, Wand2 } from 'lucide-react';
+import { Star, Paperclip, Calendar, AlertCircle, Brain, Wand2, Search } from 'lucide-react';
 import { useEmail } from '../contexts/EmailContext';
 import { Email } from '../types/email';
 
@@ -7,7 +7,13 @@ export default function EmailList() {
   const { getFilteredEmails, selectedEmail, setSelectedEmail, markAsRead, currentView } = useEmail();
   const emails = getFilteredEmails();
 
-  const handleEmailClick = (email: Email) => {
+  const handleEmailClick = (email: Email, event?: React.MouseEvent) => {
+    // Prevent default behavior to avoid page refresh
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     setSelectedEmail(email);
     if (!email.isRead) {
       markAsRead(email.id);
@@ -41,26 +47,75 @@ export default function EmailList() {
     }
   };
 
+  // Helper function to get sender info from either structure
+  const getSenderInfo = (email: any) => {
+    // Handle nested sender structure (from Email interface)
+    if (email.sender && typeof email.sender === 'object') {
+      return {
+        name: email.sender.name || 'Unknown',
+        email: email.sender.email || '',
+        avatar: email.sender.avatar
+      };
+    }
+    
+    // Handle flat structure (from mock data)
+    return {
+      name: email.sender_name || email.sender?.name || 'Unknown',
+      email: email.sender_email || email.sender?.email || '',
+      avatar: email.sender_avatar || email.sender?.avatar
+    };
+  };
+
+  // Helper function to get email properties
+  const getEmailProperty = (email: any, property: string, fallback?: any) => {
+    // Try direct property first
+    if (email[property] !== undefined) {
+      return email[property];
+    }
+    
+    // Try alternative property names
+    const alternatives: { [key: string]: string[] } = {
+      'timestamp': ['received_at', 'timestamp'],
+      'isRead': ['is_read', 'isRead'],
+      'isImportant': ['is_important', 'isImportant'],
+      'urgency': ['urgency'],
+      'subject': ['subject'],
+      'preview': ['preview'],
+      'content': ['content'],
+      'attachments': ['has_attachments', 'attachments'],
+      'meetingRequest': ['meeting_request', 'meetingRequest'],
+      'labels': ['labels']
+    };
+    
+    if (alternatives[property]) {
+      for (const alt of alternatives[property]) {
+        if (email[alt] !== undefined) {
+          return email[alt];
+        }
+      }
+    }
+    
+    return fallback;
+  };
+
   if (emails.length === 0) {
     const getEmptyStateContent = () => {
       switch (currentView) {
         case 'priority':
           return {
-            icon: <Brain className="w-8 h-8 text-purple-500" />,
+            icon: <Brain className="w-8 h-8 text-dark-accent" />,
             title: "No AI Priorities Generated",
             description: "Click the 'Generate AI Priorities' button above to let AI analyze and prioritize your emails."
           };
         case 'custom':
           return {
-            icon: <Wand2 className="w-8 h-8 text-indigo-500" />,
+            icon: <Wand2 className="w-8 h-8 text-dark-accent" />,
             title: "No Custom View Generated",
             description: "Enter your sorting criteria above and click 'Generate' to create a custom email view."
           };
         default:
           return {
-            icon: <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>,
+            icon: <Search className="w-8 h-8 text-dark-accent" />,
             title: "No emails found",
             description: "Try adjusting your search criteria or refresh your inbox."
           };
@@ -72,10 +127,10 @@ export default function EmailList() {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 mx-auto mb-4 bg-dark-primary rounded-full flex items-center justify-center shadow-lg">
+          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-radial from-dark-accent-muted to-dark-surface rounded-full flex items-center justify-center shadow-glow">
             {icon}
           </div>
-          <h3 className="text-lg font-medium text-dark-text-primary mb-2">{title}</h3>
+          <h3 className="text-lg font-medium text-dark-text-primary mb-3">{title}</h3>
           <p className="text-dark-text-secondary text-sm leading-relaxed">{description}</p>
         </div>
       </div>
@@ -83,92 +138,100 @@ export default function EmailList() {
   }
 
   return (
-    <div className="overflow-y-auto">
-      {emails.map((email) => (
-        <div
-          key={email.id}
-          onClick={() => handleEmailClick(email)}
-          className={`p-4 border-b border-gray-800 cursor-pointer transition-all hover:bg-gray-800/60
-            ${selectedEmail?.id === email.id ? 'bg-blue-900/40 border-l-4 border-l-blue-500' : ''}
-            ${!email.isRead ? 'bg-gray-900' : 'bg-gray-950'}`}
-        >
-          <div className="flex items-start space-x-3">
-            {/* Avatar */}
-            <div className="flex-shrink-0">
-              {email.sender.avatar ? (
-                <img
-                  src={email.sender.avatar}
-                  alt={email.sender.name}
-                  className="w-10 h-10 rounded-full"
-                />
-              ) : (
-                <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-gray-300">
-                    {email.sender.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-            </div>
+    <div className="flex-1 overflow-y-auto">
+      {emails.map((email) => {
+        const senderInfo = getSenderInfo(email);
+        const isRead = getEmailProperty(email, 'isRead', false);
+        const urgency = getEmailProperty(email, 'urgency', 'low');
+        const isImportant = getEmailProperty(email, 'isImportant', false);
+        const hasAttachments = getEmailProperty(email, 'attachments', false);
+        const hasMeetingRequest = getEmailProperty(email, 'meetingRequest', false);
+        const timestamp = getEmailProperty(email, 'timestamp', new Date().toISOString());
+        const labels = getEmailProperty(email, 'labels', []);
 
-            {/* Email Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <p className={`text-sm font-medium truncate ${
-                  !email.isRead ? 'text-gray-100' : 'text-gray-400'
-                }`}>
-                  {email.sender.name}
-                </p>
-                <div className="flex items-center space-x-2">
-                  {email.urgency === 'high' && (
-                    <AlertCircle className="w-4 h-4 text-red-400" />
-                  )}
-                  {email.isImportant && (
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                  )}
-                  {email.attachments && (
-                    <Paperclip className="w-4 h-4 text-gray-400" />
-                  )}
-                  {email.meetingRequest && (
-                    <Calendar className="w-4 h-4 text-blue-400" />
-                  )}
-                  <span className="text-xs text-gray-500">
-                    {formatTime(email.timestamp)}
-                  </span>
-                </div>
+        return (
+          <button
+            key={email.id}
+            onClick={(event) => handleEmailClick(email, event)}
+            className={`w-full text-left p-4 border-b border-dark-border transition-all duration-200 group
+              ${selectedEmail?.id === email.id ? 'bg-dark-surface' : 'hover:bg-dark-surface/50'}
+            `}
+          >
+            <div className="flex items-start space-x-4">
+              {/* Sender Avatar */}
+              <div className="flex-shrink-0">
+                {senderInfo.avatar ? (
+                  <img
+                    src={senderInfo.avatar}
+                    alt={senderInfo.name}
+                    className="w-10 h-10 rounded-full"
+                  />
+                ) : (
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center
+                    ${!isRead ? 'bg-gradient-radial from-dark-accent-muted to-dark-surface shadow-glow' : 'bg-dark-muted'}
+                  `}>
+                    <span className="text-sm font-medium text-dark-text-primary">
+                      {senderInfo.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
-              
-              <p className={`text-sm mb-2 truncate ${
-                !email.isRead ? 'font-medium text-gray-100' : 'text-gray-400'
-              }`}>
-                {email.subject}
-              </p>
-              
-              <p className="text-xs text-gray-500 truncate mb-2">
-                {email.preview}
-              </p>
 
-              {/* Labels */}
-              {email.labels.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {email.labels.slice(0, 2).map((label, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-blue-300"
-                    >
-                      {label}
+              {/* Email Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <p className={`text-sm font-medium truncate ${
+                    !isRead ? 'text-dark-text-primary' : 'text-dark-text-secondary'
+                  }`}>
+                    {senderInfo.name}
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    {urgency === 'high' && (
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                    )}
+                    {isImportant && (
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    )}
+                    {hasAttachments && (
+                      <Paperclip className="w-4 h-4 text-dark-text-secondary" />
+                    )}
+                    {hasMeetingRequest && (
+                      <Calendar className="w-4 h-4 text-dark-accent" />
+                    )}
+                    <span className="text-xs text-dark-text-secondary">
+                      {formatTime(timestamp)}
                     </span>
-                  ))}
-                  {email.labels.length > 2 && (
-                    <span className="text-xs text-gray-400">
-                      +{email.labels.length - 2} more
-                    </span>
-                  )}
+                  </div>
                 </div>
-              )}
+                
+                <p className={`text-sm mb-1.5 truncate ${
+                  !isRead ? 'font-medium text-dark-text-primary' : 'text-dark-text-secondary'
+                }`}>
+                  {email.subject}
+                </p>
+                
+                <p className="text-xs text-dark-text-secondary truncate mb-2">
+                  {email.preview}
+                </p>
+
+                {/* Labels */}
+                {labels && labels.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {labels.map((label: string, index: number) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-dark-accent-muted text-dark-accent"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      ))}
+          </button>
+        );
+      })}
     </div>
   );
 }

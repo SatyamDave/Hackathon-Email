@@ -9,13 +9,17 @@ export default function Layout() {
   // Simply show the main app UI with mock data
   // Authentication is handled at the App level
   return (
-    <div className="h-screen flex">
+    <div className="h-screen flex bg-gradient-subtle from-dark-primary via-dark-secondary to-dark-primary">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col border-r border-dark-border">
         <InboxView />
-        <AIPromptBox />
+        <div className="border-t border-dark-border">
+          <AIPromptBox />
+        </div>
       </div>
-      <EmailDetail />
+      <div className="w-[45%] flex flex-col border-r border-dark-border">
+        <EmailDetail />
+      </div>
       <RightSidebar />
     </div>
   );
@@ -23,15 +27,17 @@ export default function Layout() {
 
 function EmptyState() {
   return (
-    <div className="h-full flex items-center justify-center bg-dark-primary">
-      <div className="text-center">
-        <div className="w-24 h-24 mx-auto mb-4 bg-dark-secondary rounded-full flex items-center justify-center">
-          <svg className="w-12 h-12 text-dark-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="h-full flex items-center justify-center bg-dark-surface">
+      <div className="text-center max-w-md p-8">
+        <div className="w-24 h-24 mx-auto mb-6 bg-gradient-radial from-dark-accent-muted to-dark-surface rounded-full flex items-center justify-center shadow-glow">
+          <svg className="w-12 h-12 text-dark-accent animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
-        <h3 className="text-lg font-medium text-dark-text-primary mb-2">Welcome to SmartInbox</h3>
-        <p className="text-dark-text-secondary">Select an email to start reading with AI-powered assistance</p>
+        <h3 className="text-xl font-medium text-dark-text-primary mb-3">Welcome to SmartInbox</h3>
+        <p className="text-dark-text-secondary leading-relaxed">
+          Select an email to start reading with AI-powered assistance. Our smart features will help you focus on what matters most.
+        </p>
       </div>
     </div>
   );

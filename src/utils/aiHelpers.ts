@@ -57,7 +57,7 @@ Looking forward to our conversation.
 Best regards`
   };
   
-  return replies[email.id] || `Hi ${email.sender.name},
+  return replies[email.id] || `Hi ${email.sender?.name || email.sender?.email || 'there'},
 
 Thank you for reaching out. I'll review your message and get back to you shortly.
 

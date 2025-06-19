@@ -66,26 +66,24 @@ class AzureOpenAIService {
   }
 
   async emailAssistantChat(prompt: string, selectedEmail?: Email | null, allEmails?: Email[]): Promise<string> {
-    const systemMessage = {
-      role: 'system',
-      content: `You are an intelligent email assistant that helps users manage their inbox efficiently. You can:
-        
-1. Analyze and summarize emails
-2. Suggest actions and priorities
-3. Help organize emails by projects or categories
-4. Extract important information and action items
-5. Provide insights about email patterns and productivity
+    if (!this.isConfigured()) {
+      return "I'm sorry, but I'm not properly configured to help with emails right now. Please check your Azure OpenAI configuration.";
+    }
 
-Be helpful, concise, and actionable in your responses. When analyzing emails, focus on:
-- Key information and action items
-- Urgency and importance levels
-- Suggested next steps
-- Organization and categorization opportunities
+    const messages = [
+      {
+        role: 'system',
+        content: `You are an intelligent email assistant integrated with Microsoft Outlook. You can help users with:
+- Email analysis and summarization
+- Drafting responses and replies
+- Email organization and prioritization
+- Meeting scheduling and calendar management
+- Task extraction and follow-up reminders
+- Email etiquette and professional communication
 
-Always maintain a professional and friendly tone.`
-    };
-
-    const messages = [systemMessage];
+Always be helpful, professional, and concise in your responses.`
+      }
+    ];
 
     // Add context about emails
     let emailContext = '';
@@ -95,12 +93,12 @@ Always maintain a professional and friendly tone.`
       const emailSummary = allEmails.map(email => ({
         id: email.id,
         subject: email.subject,
-        from: email.sender.name,
-        urgency: email.urgency,
-        isRead: email.isRead,
-        isImportant: email.isImportant,
-        labels: email.labels,
-        preview: email.preview.substring(0, 100)
+        from: email.sender?.name || email.sender?.email || 'Unknown',
+        urgency: email.urgency || 'low',
+        isRead: email.isRead || false,
+        isImportant: email.isImportant || false,
+        labels: email.labels || [],
+        preview: (email.preview || '').substring(0, 100)
       }));
       
       emailContext += `Current inbox overview (${allEmails.length} emails):
@@ -112,13 +110,13 @@ ${JSON.stringify(emailSummary, null, 2)}
     if (selectedEmail) {
       emailContext += `Currently selected email:
 Subject: ${selectedEmail.subject}
-From: ${selectedEmail.sender.name}
+From: ${selectedEmail.sender?.name || selectedEmail.sender?.email || 'Unknown'}
 Date: ${selectedEmail.timestamp}
-Content: ${selectedEmail.content}
+Content: ${selectedEmail.content || selectedEmail.preview || ''}
 Read Status: ${selectedEmail.isRead ? 'Read' : 'Unread'}
-Urgency: ${selectedEmail.urgency}
-Important: ${selectedEmail.isImportant}
-Labels: ${selectedEmail.labels.join(', ')}
+Urgency: ${selectedEmail.urgency || 'low'}
+Important: ${selectedEmail.isImportant || false}
+Labels: ${(selectedEmail.labels || []).join(', ')}
 
 `;
     }
@@ -287,24 +285,17 @@ Return a JSON object mapping email IDs to their categories.`;
     const emailList = emails.map(email => ({
       id: email.id,
       subject: email.subject,
-      sender: email.sender.name,
-      senderEmail: email.sender.email,
-      content: email.content.substring(0, 400),
-      preview: email.preview,
+      sender: email.sender?.name || email.sender?.email || 'Unknown',
+      content: email.content?.substring(0, 300) || email.preview || '',
       timestamp: email.timestamp,
-      currentUrgency: email.urgency,
-      isImportant: email.isImportant,
-      labels: email.labels,
+      urgency: email.urgency || 'low',
+      isImportant: email.isImportant || false,
+      labels: email.labels || [],
       hasAttachments: email.attachments && email.attachments.length > 0,
       hasMeetingRequest: !!email.meetingRequest
     }));
 
-    const prompt = `You are an intelligent email prioritization assistant. Analyze the following emails and assign priority levels based on:
-
-PRIORITY CRITERIA:
-- HIGH: Urgent deadlines, security alerts, contract issues, CEO/C-level communications, system outages, legal matters, time-sensitive requests
-- MEDIUM: Project updates, meeting requests, training requirements, vendor communications, team updates
-- LOW: Social invitations, newsletters, FYI messages, wellness programs, general announcements
+    const prompt = `You are an expert email prioritization assistant. Analyze the following emails and assign priority levels based on:
 
 IMPORTANT FACTORS:
 1. Sender authority (C-level, managers, external clients vs internal teams)
@@ -347,14 +338,14 @@ Example format: {"1": "high", "2": "medium", "3": "low"}`;
     const emailList = emails.map(email => ({
       id: email.id,
       subject: email.subject,
-      sender: email.sender.name,
-      senderEmail: email.sender.email,
-      content: email.content.substring(0, 300),
-      preview: email.preview,
+      sender: email.sender?.name || email.sender?.email || 'Unknown',
+      senderEmail: email.sender?.email || '',
+      content: email.content?.substring(0, 300) || email.preview || '',
+      preview: email.preview || '',
       timestamp: email.timestamp,
-      urgency: email.urgency,
-      isImportant: email.isImportant,
-      labels: email.labels,
+      urgency: email.urgency || 'low',
+      isImportant: email.isImportant || false,
+      labels: email.labels || [],
       hasAttachments: email.attachments && email.attachments.length > 0,
       hasMeetingRequest: !!email.meetingRequest
     }));
@@ -400,8 +391,8 @@ Example format: ["3", "1", "7", "2", "5"]`;
     const prompt = `Please provide a concise TL;DR summary (2-3 sentences max) of this email:
 
 SUBJECT: ${email.subject}
-FROM: ${email.sender.name} (${email.sender.email})
-CONTENT: ${email.content}
+FROM: ${email.sender?.name || email.sender?.email || 'Unknown'} (${email.sender?.email || 'Unknown'})
+CONTENT: ${email.content || email.preview || ''}
 
 Focus on the key points, main request/information, and any action items.`;
 
@@ -423,8 +414,8 @@ Focus on the key points, main request/information, and any action items.`;
     const prompt = `Analyze this email and provide 2-3 smart suggestions for next steps, follow-ups, or actions needed:
 
 SUBJECT: ${email.subject}
-FROM: ${email.sender.name} (${email.sender.email})
-CONTENT: ${email.content}
+FROM: ${email.sender?.name || email.sender?.email || 'Unknown'} (${email.sender?.email || 'Unknown'})
+CONTENT: ${email.content || email.preview || ''}
 HAS_ATTACHMENTS: ${email.attachments && email.attachments.length > 0}
 HAS_MEETING_REQUEST: ${!!email.meetingRequest}
 
@@ -467,10 +458,10 @@ Return as a JSON array of strings.`;
 - "Proposal" - Contains proposals, offers, or suggestions for consideration
 
 SUBJECT: ${email.subject}
-FROM: ${email.sender.name} (${email.sender.email})
-CONTENT: ${email.content}
-URGENCY: ${email.urgency}
-IS_IMPORTANT: ${email.isImportant}
+FROM: ${email.sender?.name || email.sender?.email || 'Unknown'} (${email.sender?.email || 'Unknown'})
+CONTENT: ${email.content || email.preview || ''}
+URGENCY: ${email.urgency || 'low'}
+IS_IMPORTANT: ${email.isImportant || false}
 
 You can assign multiple labels if appropriate. Return as a JSON array of strings.`;
 
