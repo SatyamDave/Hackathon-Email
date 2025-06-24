@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Stack, TextField, PrimaryButton, List, Text, Spinner, Label, DefaultButton, IconButton } from '@fluentui/react';
-import { useMsal } from '@azure/msal-react';
-import { loginRequest } from '../../msalConfig';
 import { mockEmails } from '../../data/mockEmails';
-import { AIService } from '../../services/aiService';
-
-const aiService = new AIService();
 
 interface Email {
   id: string;
@@ -29,8 +24,6 @@ function formatDate(dateString: string) {
 }
 
 export const CustomInbox: React.FC = () => {
-  const { instance, accounts } = useMsal();
-  const account = accounts[0];
   const [prompt, setPrompt] = useState('');
   const [emails, setEmails] = useState<Email[]>([]);
   const [filtered, setFiltered] = useState<Email[]>([]);
@@ -76,8 +69,10 @@ export const CustomInbox: React.FC = () => {
 
   const handleSmartReply = async (email: Email) => {
     try {
-      const reply = await aiService.generateReply(email.id, email);
-      setReplyDrafts((prev) => ({ ...prev, [email.id]: reply }));
+      // Mock AI reply generation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const mockReply = `Thank you for your email regarding "${email.subject}". I appreciate you reaching out and will review the details you've provided. I'll get back to you with a comprehensive response shortly.`;
+      setReplyDrafts((prev) => ({ ...prev, [email.id]: mockReply }));
     } catch (error) {
       console.error('Error generating reply:', error);
     }
@@ -85,8 +80,10 @@ export const CustomInbox: React.FC = () => {
 
   const handleGetSummary = async (email: Email) => {
     try {
-      const summary = await aiService.generateSummary(email.id, email);
-      setSummaries((prev) => ({ ...prev, [email.id]: summary }));
+      // Mock AI summary generation
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const mockSummary = `This email from ${email.sender.name} discusses ${email.subject.toLowerCase()}. It appears to be ${email.isImportant ? 'important' : 'standard'} communication requiring ${email.urgency === 'high' ? 'immediate' : 'standard'} attention.`;
+      setSummaries((prev) => ({ ...prev, [email.id]: mockSummary }));
     } catch (error) {
       console.error('Error generating summary:', error);
     }
@@ -200,36 +197,8 @@ export const CustomInbox: React.FC = () => {
                     } 
                   }}
                 >
-                  <Text variant="mediumPlus" styles={{ root: { fontWeight: 600 } }}>AI Summary</Text>
-                  <Text>{summaries[email.id].summary}</Text>
-                  {summaries[email.id].keyPoints.length > 0 && (
-                    <>
-                      <Text variant="small" styles={{ root: { fontWeight: 600 } }}>Key Points:</Text>
-                      <ul style={{ margin: 0, paddingLeft: 20 }}>
-                        {summaries[email.id].keyPoints.map((point: string, idx: number) => (
-                          <li key={idx}><Text variant="small">{point}</Text></li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {summaries[email.id].actionItems.length > 0 && (
-                    <>
-                      <Text variant="small" styles={{ root: { fontWeight: 600 } }}>Action Items:</Text>
-                      <ul style={{ margin: 0, paddingLeft: 20 }}>
-                        {summaries[email.id].actionItems.map((item: string, idx: number) => (
-                          <li key={idx}><Text variant="small">{item}</Text></li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  <Stack horizontal tokens={{ childrenGap: 8 }}>
-                    <Label styles={{ root: { background: summaries[email.id].urgency === 'high' ? '#d13438' : '#ffaa44', color: 'white', borderRadius: '4px' } }}>
-                      {summaries[email.id].urgency.toUpperCase()}
-                    </Label>
-                    <Label styles={{ root: { background: '#0078d4', color: 'white', borderRadius: '4px' } }}>
-                      {summaries[email.id].category}
-                    </Label>
-                  </Stack>
+                  <Text variant="small" styles={{ root: { fontWeight: 600 } }}>AI Summary:</Text>
+                  <Text variant="small">{summaries[email.id]}</Text>
                 </Stack>
               )}
 
@@ -238,33 +207,15 @@ export const CustomInbox: React.FC = () => {
                   tokens={{ childrenGap: 5 }} 
                   styles={{ 
                     root: { 
-                      background: '#f0f7ff', 
+                      background: '#f0f8ff', 
                       padding: 12, 
                       borderRadius: 4, 
                       marginTop: 8 
                     } 
                   }}
                 >
-                  <Text variant="mediumPlus" styles={{ root: { fontWeight: 600 } }}>AI-Generated Reply</Text>
-                  <Text styles={{ root: { whiteSpace: 'pre-line' } }}>{replyDrafts[email.id].reply}</Text>
-                  <Stack horizontal tokens={{ childrenGap: 8 }}>
-                    <Label styles={{ root: { background: '#0078d4', color: 'white', borderRadius: '4px' } }}>
-                      {replyDrafts[email.id].tone.toUpperCase()}
-                    </Label>
-                    <Label styles={{ root: { background: '#107c10', color: 'white', borderRadius: '4px' } }}>
-                      {Math.round(replyDrafts[email.id].confidence * 100)}% Confidence
-                    </Label>
-                  </Stack>
-                  {replyDrafts[email.id].suggestions.length > 0 && (
-                    <>
-                      <Text variant="small" styles={{ root: { fontWeight: 600 } }}>Suggestions:</Text>
-                      <ul style={{ margin: 0, paddingLeft: 20 }}>
-                        {replyDrafts[email.id].suggestions.map((suggestion: string, idx: number) => (
-                          <li key={idx}><Text variant="small">{suggestion}</Text></li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+                  <Text variant="small" styles={{ root: { fontWeight: 600 } }}>AI Reply Draft:</Text>
+                  <Text variant="small">{replyDrafts[email.id]}</Text>
                 </Stack>
               )}
             </Stack>

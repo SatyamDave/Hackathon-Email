@@ -1,10 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { Email } from '../types/email';
-import { AzureOpenAIService } from '../services/azureOpenAI';
-import { outlookService } from '../services/outlookService';
-import { useMsal } from '@azure/msal-react';
-import { loginRequest } from '../msalConfig';
-import { supabase } from '../lib/supabase';
+import { mockEmails } from '../data/mockEmails';
+
+// Toast system
+interface Toast {
+  id: number;
+  message: string;
+  type?: 'success' | 'error' | 'info';
+}
 
 interface EmailContextType {
   emails: Email[];
@@ -34,26 +37,34 @@ interface EmailContextType {
   hasAIPriorities: boolean;
   hasCustomView: boolean;
   customCriteria: string;
+  toasts: Toast[];
+  addToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  removeToast: (id: number) => void;
 }
 
 const EmailContext = createContext<EmailContextType | undefined>(undefined);
 
 export function EmailProvider({ children }: { children: React.ReactNode }) {
-  const { instance, accounts } = useMsal();
-  const account = accounts[0];
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [currentView, setCurrentView] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasAIPriorities, setHasAIPriorities] = useState(false);
   const [hasCustomView, setHasCustomView] = useState(false);
   const [customCriteria, setCustomCriteria] = useState('');
-  const [userUUID, setUserUUID] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  let toastId = 0;
+
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    toastId += 1;
+    const id = toastId;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => removeToast(id), 2500);
+  };
+
+  const removeToast = (id: number) => setToasts((prev) => prev.filter(t => t.id !== id));
 
   const markAsRead = (emailId: string) => {
     setEmails(emails.map(email => 
@@ -88,7 +99,6 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     switch (currentView) {
       case 'priority':
         if (!hasAIPriorities) {
-          // Show empty view until AI priorities are generated
           return [];
         }
         filtered.sort((a, b) => {
@@ -101,11 +111,8 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
         break;
       case 'custom':
         if (!hasCustomView) {
-          // Show empty view until custom sorting is generated
           return [];
         }
-        // Custom view maintains the order set by generateCustomView
-        // No additional sorting needed as emails are already in custom order
         break;
       default:
         filtered.sort((a, b) => 
@@ -116,207 +123,84 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
     return filtered;
   };
 
-  const generateSummary = async (email: Email) => {
-    return `Summary of ${email.subject}: ${email.preview}`;
-  };
-
-  const generateReply = async (email: Email) => {
-    return `Thank you for your email regarding ${email.subject}. I will review this and get back to you soon.`;
-  };
-
-  const authenticateOutlook = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      if (!account) throw new Error('No account found. Please sign in.');
-      
-      // Check if Supabase is available
-      if (!supabase) {
-        console.warn('Supabase not available, using mock authentication');
-        // Use mock user UUID for demo purposes
-        const mockUserUUID = 'mock-user-' + Date.now();
-        setUserUUID(mockUserUUID);
-        
-        // Proceed with authentication without database operations
-        try {
-          const response = await instance.acquireTokenSilent({
-            ...loginRequest,
-            account,
-          });
-          setIsAuthenticated(true);
-          setUser(account);
-          setAccessToken(response.accessToken);
-          // Fetch emails after authentication
-          const outlookEmails = await outlookService.syncEmails(mockUserUUID, response.accessToken);
-          setEmails(outlookEmails);
-        } catch (silentError) {
-          // If silent token acquisition fails, try interactive login
-          const response = await instance.acquireTokenPopup({
-            ...loginRequest,
-            account,
-            prompt: 'consent' // Force consent prompt
-          });
-          setIsAuthenticated(true);
-          setUser(account);
-          setAccessToken(response.accessToken);
-          // Fetch emails after authentication
-          const outlookEmails = await outlookService.syncEmails(mockUserUUID, response.accessToken);
-          setEmails(outlookEmails);
-        }
-        return;
-      }
-
-      // Fetch user UUID from Supabase users table
-      let userUUID: string | null = null;
-      let { data: userRows, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', account.username)
-        .single();
-      if (userError || !userRows) {
-        // User not found, create new user
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            email: account.username,
-            name: account.name || account.username,
-          })
-          .select('id')
-          .single();
-        if (insertError || !newUser) throw new Error('Failed to create user in database.');
-        userUUID = newUser.id;
-      } else {
-        userUUID = userRows.id;
-      }
-      setUserUUID(userUUID);
-      if (!userUUID) throw new Error('User UUID not found or created.');
-      
-      // First try silent token acquisition
-      try {
-        const response = await instance.acquireTokenSilent({
-          ...loginRequest,
-          account,
-        });
-        setIsAuthenticated(true);
-        setUser(account);
-        setAccessToken(response.accessToken);
-        // Fetch emails after authentication
-        const outlookEmails = await outlookService.syncEmails(userUUID, response.accessToken);
-        setEmails(outlookEmails);
-      } catch (silentError) {
-        // If silent token acquisition fails, try interactive login
-        const response = await instance.acquireTokenPopup({
-          ...loginRequest,
-          account,
-          prompt: 'consent' // Force consent prompt
-        });
-        setIsAuthenticated(true);
-        setUser(account);
-        setAccessToken(response.accessToken);
-        // Fetch emails after authentication
-        const outlookEmails = await outlookService.syncEmails(userUUID, response.accessToken);
-        setEmails(outlookEmails);
-      }
-    } catch (error: any) {
-      setIsAuthenticated(false);
-      setUser(null);
-      setAccessToken(null);
-      setEmails([]);
-      setError(error.message || 'Outlook authentication failed.');
-      console.error('Outlook authentication failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const syncEmails = async () => {
     setIsLoading(true);
     setError(null);
-    try {
-      if (!userUUID || !accessToken) throw new Error('Not authenticated. Please sign in.');
-      const outlookEmails = await outlookService.syncEmails(userUUID, accessToken);
-      setEmails(outlookEmails);
-    } catch (error: any) {
-      setEmails([]);
-      setError(error.message || 'Failed to sync emails.');
-      console.error('Failed to sync emails:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const sendReply = async (emailId: string, content: string) => {
-    return true;
-  };
-
-  const scheduleMeeting = async (meetingData: any) => {
-    return {};
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        setEmails(mockEmails);
+        addToast('Emails synced!', 'success');
+        setIsLoading(false);
+        resolve();
+      }, 1200);
+    });
   };
 
   const generateAIPriorities = async () => {
     setIsLoading(true);
-    try {
-      console.log('Generating AI priorities for emails...');
-      const priorities = await AzureOpenAIService.smartPrioritizeEmails(emails);
-      console.log('AI-generated priorities:', priorities);
-      
-      // Update emails with AI-generated priorities
-      const updatedEmails = emails.map(email => ({
-        ...email,
-        urgency: priorities[email.id] || email.urgency
-      }));
-      
-      setEmails(updatedEmails);
-      setHasAIPriorities(true);
-      console.log('Emails updated with AI priorities');
-    } catch (error) {
-      console.error('Failed to generate AI priorities:', error);
-      // Could add error state here if needed
-    } finally {
-      setIsLoading(false);
-    }
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const urgencies: ('high' | 'medium' | 'low')[] = ['high', 'medium', 'low'];
+        setEmails(emails.map(email => ({
+          ...email,
+          urgency: urgencies[Math.floor(Math.random() * urgencies.length)]
+        })));
+        setHasAIPriorities(true);
+        addToast('AI priorities generated!', 'success');
+        setIsLoading(false);
+        resolve();
+      }, 1200);
+    });
   };
 
   const generateCustomView = async (criteria: string) => {
     setIsLoading(true);
-    try {
-      console.log('Generating custom view with criteria:', criteria);
-      const customSorting = await AzureOpenAIService.generateCustomSorting(emails, criteria);
-      console.log('AI-generated custom sorting:', customSorting);
-      
-      // Apply custom sorting to emails
-      const sortedEmails = [...emails].sort((a, b) => {
-        const aIndex = customSorting.indexOf(a.id);
-        const bIndex = customSorting.indexOf(b.id);
-        
-        // If both emails are in the custom sorting, use that order
-        if (aIndex !== -1 && bIndex !== -1) {
-          return aIndex - bIndex;
-        }
-        // If only one is in the custom sorting, prioritize it
-        if (aIndex !== -1) return -1;
-        if (bIndex !== -1) return 1;
-        // If neither is in custom sorting, maintain original order
-        return 0;
-      });
-      
-      setEmails(sortedEmails);
-      setCustomCriteria(criteria);
-      setHasCustomView(true);
-      console.log('Emails updated with custom sorting');
-    } catch (error) {
-      console.error('Failed to generate custom view:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const shuffled = [...emails].sort(() => Math.random() - 0.5);
+        setEmails(shuffled);
+        setCustomCriteria(criteria);
+        setHasCustomView(true);
+        addToast('Custom view generated!', 'success');
+        setIsLoading(false);
+        resolve();
+      }, 1200);
+    });
   };
 
-  useEffect(() => {
-    if (account && !isAuthenticated) {
-      authenticateOutlook();
-    }
-    // eslint-disable-next-line
-  }, [account]);
+  const generateSummary = async (email: Email) => {
+    return new Promise<string>((resolve) => {
+      setTimeout(() => {
+        resolve(`Summary: ${email.preview}`);
+      }, 800);
+    });
+  };
+
+  const generateReply = async (email: Email) => {
+    return new Promise<string>((resolve) => {
+      setTimeout(() => {
+        resolve(`Thank you for your email about "${email.subject}". I will review and get back to you soon.`);
+      }, 800);
+    });
+  };
+
+  const sendReply = async (emailId: string, content: string) => {
+    return new Promise<boolean>((resolve) => {
+      setTimeout(() => {
+        addToast('Reply sent!', 'success');
+        resolve(true);
+      }, 1000);
+    });
+  };
+
+  const scheduleMeeting = async (meetingData: any) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        addToast('Meeting scheduled!', 'success');
+        resolve({});
+      }, 1000);
+    });
+  };
 
   return (
     <EmailContext.Provider value={{
@@ -325,9 +209,9 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
       currentView,
       searchQuery,
       isLoading,
-      isAuthenticated,
-      user,
-      accessToken,
+      isAuthenticated: true,
+      user: { name: 'Demo User', username: 'demo@demo.com' },
+      accessToken: 'demo-token',
       error,
       setSelectedEmail,
       setCurrentView,
@@ -338,7 +222,7 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
       getFilteredEmails,
       generateSummary,
       generateReply,
-      authenticateOutlook,
+      authenticateOutlook: async () => {},
       syncEmails,
       sendReply,
       scheduleMeeting,
@@ -346,7 +230,10 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
       generateCustomView,
       hasAIPriorities,
       hasCustomView,
-      customCriteria
+      customCriteria,
+      toasts,
+      addToast,
+      removeToast
     }}>
       {children}
     </EmailContext.Provider>

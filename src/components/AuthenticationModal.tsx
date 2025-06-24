@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Brain, CheckCircle, ArrowRight } from 'lucide-react';
-import { useOutlookLogin } from '../hooks/useOutlookLogin';
 
 interface AuthenticationModalProps {
   isOpen: boolean;
@@ -9,40 +8,27 @@ interface AuthenticationModalProps {
 
 export default function AuthenticationModal({ isOpen, onClose }: AuthenticationModalProps) {
   const [step, setStep] = useState<'intro' | 'connecting' | 'success'>('intro');
-  const login = useOutlookLogin();
   const [isLoading, setIsLoading] = useState(false);
-  const [outlookError, setOutlookError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleConnect = async () => {
-    let timeoutId: NodeJS.Timeout | null = null;
     try {
       setIsLoading(true);
-      setOutlookError(null);
       setStep('connecting');
-      // Timeout after 20 seconds
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(new Error('Outlook login timed out. Please try again.'));
-        }, 20000);
-      });
-      // Race login and timeout
-      await Promise.race([
-        (async () => {
-          await login();
-        })(),
-        timeoutPromise
-      ]);
+      
+      // Mock connection process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       setStep('success');
+      
+      // Auto close after success
       setTimeout(() => {
         onClose();
       }, 2000);
-    } catch (error: any) {
-      setOutlookError(error.message || 'Outlook authentication failed.');
-      setStep('connecting');
+    } catch (error) {
+      console.error('Mock auth error:', error);
     } finally {
-      if (timeoutId) clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
@@ -72,17 +58,6 @@ export default function AuthenticationModal({ isOpen, onClose }: AuthenticationM
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Connecting to Outlook</h3>
             <p className="text-gray-600 mb-4">Setting up your AI-powered inbox...</p>
-            {outlookError && (
-              <div className="text-red-500 text-sm mb-4">{outlookError}</div>
-            )}
-            {outlookError && (
-              <button
-                onClick={handleConnect}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-all duration-200 mb-2"
-              >
-                Retry Outlook Login
-              </button>
-            )}
             <div className="flex justify-center">
               <div className="flex space-x-1">
                 <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>

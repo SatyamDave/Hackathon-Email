@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, List, Text, Spinner, Label, DefaultButton, IconButton } from '@fluentui/react';
-import { useMsal } from '@azure/msal-react';
-import { loginRequest } from '../../msalConfig';
+import { mockEmails } from '../../data/mockEmails';
 
 interface Email {
   id: string;
@@ -34,8 +33,6 @@ function getSmartReply(email: Email) {
 }
 
 export const DefaultInbox: React.FC = () => {
-  const { instance, accounts } = useMsal();
-  const account = accounts[0];
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,27 +40,15 @@ export const DefaultInbox: React.FC = () => {
   const [readStatus, setReadStatus] = useState<{ [id: string]: boolean }>({});
 
   const fetchEmails = async () => {
-    if (!account) return;
     setLoading(true);
     setError(null);
     try {
-      const response = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account,
-      });
-      const accessToken = response.accessToken;
-      const res = await fetch(
-        'https://graph.microsoft.com/v1.0/me/messages?$top=10',
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const data = await res.json();
-      console.log("Graph API response:", data); // Debug output
-      const mapped: Email[] = (data.value || []).map((msg: any) => ({
+      const mapped: Email[] = mockEmails.map((msg: any) => ({
         id: msg.id,
         subject: msg.subject,
-        from: msg.from?.emailAddress?.name || 'Unknown',
-        receivedDateTime: msg.receivedDateTime,
-        preview: msg.bodyPreview,
+        from: msg.sender.name,
+        receivedDateTime: msg.timestamp,
+        preview: msg.preview,
       }));
       setEmails(mapped);
       // Reset read status for new emails
@@ -79,7 +64,7 @@ export const DefaultInbox: React.FC = () => {
   useEffect(() => {
     fetchEmails();
     // eslint-disable-next-line
-  }, [account, instance]);
+  }, []);
 
   const handleSmartReply = (email: Email) => {
     setReplyDraft((prev) => ({ ...prev, [email.id]: getSmartReply(email) }));
@@ -93,9 +78,6 @@ export const DefaultInbox: React.FC = () => {
     setReadStatus((prev) => ({ ...prev, [email.id]: !prev[email.id] }));
   };
 
-  if (!account) {
-    return <Text>Please sign in to view your inbox.</Text>;
-  }
   if (loading) {
     return <Spinner label="Loading emails..." />;
   }

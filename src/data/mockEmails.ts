@@ -561,5 +561,22 @@ Executive Team`,
     isImportant: true,
     urgency: 'high',
     labels: ['Meeting', 'Town Hall']
-  }
+  },
+  {
+    id: '8',
+    sender: {
+      name: 'Finance Team',
+      email: 'finance@company.com',
+      avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
+    },
+    subject: 'Expense Report Submission Reminder',
+    preview: 'Please submit your Q1 expense reports by end of this week.',
+    content: `Hi Team,\n\nThis is a reminder to submit your Q1 expense reports by Friday. Late submissions will not be reimbursed.\n\nThanks,\nFinance Team`,
+    timestamp: '2024-03-13T14:00:00Z',
+    isRead: false,
+    isImportant: false,
+    urgency: 'medium',
+    labels: ['Reminder', 'Finance']
+  },
+  // ... 43 more ...
 ];

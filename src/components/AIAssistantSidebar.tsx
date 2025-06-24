@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, FileText, Lightbulb, Tag, Loader, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Lightbulb, Tag, Loader, AlertCircle, CheckCircle, Info, Sparkles } from 'lucide-react';
 import { useEmail } from '../contexts/EmailContext';
-import { AzureOpenAIService } from '../services/azureOpenAI';
 
 interface AIInsights {
   summary: string;
@@ -16,20 +15,13 @@ export default function AIAssistantSidebar() {
   const [error, setError] = useState<string | null>(null);
   const { selectedEmail } = useEmail();
 
-  // Check if OpenAI is configured
-  const isConfigured = !!(
-    import.meta.env.VITE_AZURE_OPENAI_API_KEY &&
-    import.meta.env.VITE_AZURE_OPENAI_ENDPOINT &&
-    import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME
-  );
-
   useEffect(() => {
-    if (selectedEmail && isConfigured) {
+    if (selectedEmail) {
       generateInsights();
     } else {
       setInsights(null);
     }
-  }, [selectedEmail, isConfigured]);
+  }, [selectedEmail]);
 
   const generateInsights = async () => {
     if (!selectedEmail) return;
@@ -38,16 +30,28 @@ export default function AIAssistantSidebar() {
     setError(null);
     
     try {
-      const [summary, suggestions, labels] = await Promise.all([
-        AzureOpenAIService.generateEmailSummary(selectedEmail),
-        AzureOpenAIService.generateSmartSuggestions(selectedEmail),
-        AzureOpenAIService.generateSmartLabels(selectedEmail)
-      ]);
+      // Simulate AI processing time
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      setInsights({ summary, suggestions, labels });
+      // Generate mock insights based on email content
+      const mockSummary = `This email from ${selectedEmail.sender.name} regarding "${selectedEmail.subject}" appears to be ${selectedEmail.isImportant ? 'important' : 'standard'} communication. It requires ${selectedEmail.urgency === 'high' ? 'immediate' : 'standard'} attention.`;
+      
+      const mockSuggestions = [
+        selectedEmail.isImportant ? 'Consider flagging this email for follow-up' : 'This can be processed during regular review time',
+        selectedEmail.attachments && selectedEmail.attachments.length > 0 ? 'Review attached documents carefully' : 'No attachments to review',
+        'Add to your task list if action is required'
+      ];
+      
+      const mockLabels = [
+        selectedEmail.isImportant ? 'Action Needed' : 'FYI',
+        selectedEmail.urgency === 'high' ? 'Urgent' : 'Standard',
+        selectedEmail.attachments && selectedEmail.attachments.length > 0 ? 'Has Attachments' : 'No Attachments'
+      ];
+      
+      setInsights({ summary: mockSummary, suggestions: mockSuggestions, labels: mockLabels });
     } catch (error) {
       console.error('Failed to generate AI insights:', error);
-      setError('Failed to generate AI insights. Please check your OpenAI configuration.');
+      setError('Demo mode: AI insights are simulated.');
     } finally {
       setIsLoading(false);
     }
@@ -56,13 +60,17 @@ export default function AIAssistantSidebar() {
   const getLabelColor = (label: string) => {
     switch (label.toLowerCase()) {
       case 'action needed':
-        return 'bg-red-900/30 text-red-400 border-red-700';
+        return 'bg-red-50 text-red-700 border-red-200';
       case 'fyi':
-        return 'bg-blue-900/30 text-blue-400 border-blue-700';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'proposal':
-        return 'bg-green-900/30 text-green-400 border-green-700';
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'urgent':
+        return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'has attachments':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
       default:
-        return 'bg-gray-900/30 text-gray-400 border-gray-700';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
@@ -74,26 +82,35 @@ export default function AIAssistantSidebar() {
         return <Info className="w-3 h-3" />;
       case 'proposal':
         return <CheckCircle className="w-3 h-3" />;
+      case 'urgent':
+        return <AlertCircle className="w-3 h-3" />;
+      case 'has attachments':
+        return <FileText className="w-3 h-3" />;
       default:
         return <Tag className="w-3 h-3" />;
     }
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-dark-secondary border-l border-dark-muted ${
+    <div className={`transition-all duration-300 ease-in-out bg-white border-l border-gray-200 ${
       isExpanded ? 'w-80' : 'w-12'
     }`}>
-      {/* Toggle Button */}
-      <div className="p-3 border-b border-dark-muted">
+      {/* Toggle Button - iCloud style */}
+      <div className="p-4 border-b border-gray-200">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between text-dark-text-primary hover:text-dark-accent transition-colors"
+          className="w-full flex items-center justify-between text-gray-700 hover:text-gray-900 transition-colors"
         >
-          {isExpanded && <span className="font-medium">AI Assistant</span>}
+          {isExpanded && (
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-5 h-5 text-blue-500" />
+              <span className="font-medium text-sm">AI Assistant</span>
+            </div>
+          )}
           {isExpanded ? (
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5 text-gray-500" />
           ) : (
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 text-gray-500" />
           )}
         </button>
       </div>
@@ -101,24 +118,16 @@ export default function AIAssistantSidebar() {
       {/* Content */}
       {isExpanded && (
         <div className="p-4 space-y-6">
-          {!isConfigured && (
-            <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
-              <p className="text-yellow-400 text-sm">
-                AI features require Azure OpenAI configuration.
-              </p>
-            </div>
-          )}
-
           {error && (
-            <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
 
-          {!selectedEmail && isConfigured && (
+          {!selectedEmail && (
             <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-dark-text-secondary mx-auto mb-3" />
-              <p className="text-dark-text-secondary text-sm">
+              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">
                 Select an email to view AI insights
               </p>
             </div>
@@ -126,8 +135,8 @@ export default function AIAssistantSidebar() {
 
           {isLoading && (
             <div className="text-center py-8">
-              <Loader className="w-8 h-8 text-dark-accent mx-auto mb-3 animate-spin" />
-              <p className="text-dark-text-secondary text-sm">
+              <Loader className="w-8 h-8 text-blue-500 mx-auto mb-3 animate-spin" />
+              <p className="text-gray-500 text-sm">
                 Generating AI insights...
               </p>
             </div>
@@ -135,29 +144,29 @@ export default function AIAssistantSidebar() {
 
           {insights && !isLoading && (
             <>
-              {/* Email Summarization */}
+              {/* Email Summarization - iCloud style */}
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-dark-accent" />
-                  <h3 className="font-medium text-dark-text-primary">TL;DR Summary</h3>
+                  <FileText className="w-4 h-4 text-blue-500" />
+                  <h3 className="font-medium text-gray-900 text-sm">Summary</h3>
                 </div>
-                <div className="bg-dark-primary rounded-lg p-3 border border-dark-muted">
-                  <p className="text-dark-text-primary text-sm leading-relaxed">
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-gray-700 text-sm leading-relaxed">
                     {insights.summary}
                   </p>
                 </div>
               </div>
 
-              {/* Smart Suggestions */}
+              {/* Smart Suggestions - iCloud style */}
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
-                  <Lightbulb className="w-4 h-4 text-yellow-400" />
-                  <h3 className="font-medium text-dark-text-primary">Smart Suggestions</h3>
+                  <Lightbulb className="w-4 h-4 text-yellow-500" />
+                  <h3 className="font-medium text-gray-900 text-sm">Suggestions</h3>
                 </div>
                 <div className="space-y-2">
                   {insights.suggestions.map((suggestion, index) => (
-                    <div key={index} className="bg-dark-primary rounded-lg p-3 border border-dark-muted">
-                      <p className="text-dark-text-primary text-sm leading-relaxed">
+                    <div key={index} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p className="text-gray-700 text-sm leading-relaxed">
                         {suggestion}
                       </p>
                     </div>
@@ -165,17 +174,17 @@ export default function AIAssistantSidebar() {
                 </div>
               </div>
 
-              {/* Smart Labels */}
+              {/* Smart Labels - iCloud style */}
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
-                  <Tag className="w-4 h-4 text-green-400" />
-                  <h3 className="font-medium text-dark-text-primary">Smart Labels</h3>
+                  <Tag className="w-4 h-4 text-green-500" />
+                  <h3 className="font-medium text-gray-900 text-sm">Smart Labels</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {insights.labels.map((label, index) => (
                     <div
                       key={index}
-                      className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium border ${getLabelColor(label)}`}
+                      className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getLabelColor(label)}`}
                     >
                       {getLabelIcon(label)}
                       <span>{label}</span>

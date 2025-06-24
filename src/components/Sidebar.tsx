@@ -1,16 +1,21 @@
-import React from 'react';
-import { Inbox, Star, Archive, Send, FileText, Settings, Brain, FolderSync as Sync, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Inbox, Star, Archive, Send, FileText, Settings, Brain, FolderSync as Sync, LogOut, Plus, Keyboard, Mail } from 'lucide-react';
 import { useEmail } from '../contexts/EmailContext';
-import { useMsal } from '@azure/msal-react';
+import SettingsModal from './SettingsModal';
+import EmailComposer from './EmailComposer';
+import KeyboardShortcuts from './KeyboardShortcuts';
 
 export default function Sidebar() {
-  const { emails, syncEmails, isLoading } = useEmail();
-  const { accounts, instance } = useMsal();
-  const user = accounts[0];
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '';
+  const { emails, syncEmails, isLoading, addToast } = useEmail();
+  const mockUser = { name: 'Demo User', username: 'demo@company.com' };
+  const initials = mockUser.name ? mockUser.name.split(' ').map(n => n[0]).join('').toUpperCase() : '';
   
   const unreadCount = emails.filter(email => !email.isRead).length;
   const importantCount = emails.filter(email => email.isImportant).length;
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const menuItems = [
     { icon: Inbox, label: 'Inbox', count: unreadCount, isActive: true },
@@ -29,51 +34,66 @@ export default function Sidebar() {
   };
 
   const handleLogout = () => {
-    instance.logoutPopup();
+    addToast('Logged out successfully!', 'success');
+  };
+
+  const handleSettingsSave = () => {
+    addToast('Settings saved!', 'success');
   };
 
   return (
-    <div className="w-64 bg-gradient-subtle from-dark-primary to-dark-surface text-dark-text-primary flex flex-col shadow-xl border-r border-dark-border">
-      {/* User Profile */}
-      <div className="p-6 border-b border-dark-border bg-dark-surface/50 backdrop-blur-sm">
+    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+      {/* Header - SmartBox branding */}
+      <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-radial from-dark-accent to-dark-accent-muted rounded-full flex items-center justify-center text-dark-primary font-semibold shadow-glow">
-            {initials || 'U'}
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Mail className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-dark-text-primary">{user?.name || 'User'}</h3>
-            <p className="text-dark-text-secondary text-sm">{user?.username || 'user@company.com'}</p>
+            <h1 className="text-xl font-semibold text-gray-900">SmartBox</h1>
+            <p className="text-gray-500 text-sm">AI-Powered</p>
           </div>
         </div>
       </div>
 
-      {/* Header */}
-      <div className="p-6 border-b border-dark-border">
+      {/* User Profile */}
+      <div className="p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-radial from-dark-accent to-dark-accent-muted rounded-lg flex items-center justify-center shadow-glow">
-            <Brain className="w-6 h-6 text-dark-primary" />
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+            {initials || 'U'}
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-wide">SmartInbox</h1>
-            <p className="text-dark-text-secondary text-sm">AI-Powered Email</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">{mockUser.name}</p>
+            <p className="text-xs text-gray-500 truncate">{mockUser.username}</p>
           </div>
         </div>
+      </div>
+
+      {/* Compose Button */}
+      <div className="p-4 border-b border-gray-200">
+        <button
+          onClick={() => setShowComposer(true)}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg transition-colors hover:bg-blue-700 font-medium"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Compose</span>
+        </button>
       </div>
 
       {/* Sync Button */}
-      <div className="p-4 border-b border-dark-border">
+      <div className="p-4 border-b border-gray-200">
         <button
           onClick={handleSync}
           disabled={isLoading}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-gradient-subtle from-dark-accent to-dark-accent-hover text-dark-primary rounded-lg transition-all duration-200 hover:from-dark-accent-hover hover:to-dark-accent disabled:opacity-50 shadow-glow disabled:shadow-none"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg transition-colors hover:bg-gray-200 disabled:opacity-50 font-medium"
         >
           <Sync className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span className="font-medium">{isLoading ? 'Syncing...' : 'Sync Emails'}</span>
+          <span>{isLoading ? 'Syncing...' : 'Sync'}</span>
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+      <nav className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-1">
           {menuItems.map((item, index) => (
             <li key={index}>
@@ -83,23 +103,23 @@ export default function Sidebar() {
                   e.stopPropagation();
                   // Handle navigation here if needed
                 }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 font-medium group
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors font-medium text-sm
                   ${item.isActive
-                    ? 'bg-dark-accent text-dark-primary shadow-glow'
-                    : 'text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-muted'}
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'}
                 `}
               >
                 <div className="flex items-center space-x-3">
-                  <item.icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
-                    item.isActive ? '' : 'group-hover:text-dark-accent'
+                  <item.icon className={`w-5 h-5 ${
+                    item.isActive ? 'text-blue-600' : 'text-gray-500'
                   }`} />
                   <span>{item.label}</span>
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className={`px-2 py-1 rounded-full text-xs ${
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     item.isActive
-                      ? 'bg-dark-primary/20 text-dark-primary'
-                      : 'bg-dark-surface text-dark-text-secondary'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600'
                   }`}>
                     {item.count}
                   </span>
@@ -108,19 +128,47 @@ export default function Sidebar() {
             </li>
           ))}
         </ul>
+
+        {/* AI Features Section */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
+            AI Features
+          </h3>
+          <ul className="space-y-1">
+            <li>
+              <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <Brain className="w-5 h-5 text-blue-600" />
+                <span>Smart Inbox</span>
+              </button>
+            </li>
+            <li>
+              <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <Brain className="w-5 h-5 text-green-600" />
+                <span>AI Assistant</span>
+              </button>
+            </li>
+          </ul>
+        </div>
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-dark-border space-y-2">
+      <div className="p-4 border-t border-gray-200 space-y-1">
+        <button
+          onClick={() => setShowShortcuts(true)}
+          className="flex items-center space-x-3 px-3 py-2 w-full text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors text-sm"
+        >
+          <Keyboard className="w-5 h-5 text-gray-500" />
+          <span>Shortcuts</span>
+        </button>
         <button
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            // Handle settings click
+            setShowSettings(true);
           }}
-          className="flex items-center space-x-3 px-4 py-3 w-full text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-muted rounded-lg transition-all duration-200 font-medium group"
+          className="flex items-center space-x-3 px-3 py-2 w-full text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors text-sm"
         >
-          <Settings className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90 group-hover:text-dark-accent" />
+          <Settings className="w-5 h-5 text-gray-500" />
           <span>Settings</span>
         </button>
         <button
@@ -129,12 +177,17 @@ export default function Sidebar() {
             e.stopPropagation();
             handleLogout();
           }}
-          className="flex items-center space-x-3 px-4 py-3 w-full text-dark-text-secondary hover:text-dark-text-primary hover:bg-dark-muted rounded-lg transition-all duration-200 font-medium group"
+          className="flex items-center space-x-3 px-3 py-2 w-full text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors text-sm"
         >
-          <LogOut className="w-5 h-5 transition-transform duration-200 group-hover:-translate-x-1 group-hover:text-dark-accent" />
-          <span>Logout</span>
+          <LogOut className="w-5 h-5 text-gray-500" />
+          <span>Sign Out</span>
         </button>
       </div>
+      
+      {/* Modals */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} onSave={handleSettingsSave} />
+      <EmailComposer isOpen={showComposer} onClose={() => setShowComposer(false)} />
+      <KeyboardShortcuts isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }
