@@ -1,67 +1,57 @@
 import { Email } from '../types/email';
+import AzureOpenAIService from '../services/azureOpenAI';
 
 export const generateAISummary = async (email: Email): Promise<string> => {
-  // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  const summaries: { [key: string]: string } = {
-    '1': '📅 Sarah Chen requests Q4 strategy meeting for next Friday at 2PM. Requires confirmation by end of day. Meeting will cover initiatives and budget allocation.',
-    '2': '⏰ Weekly standup reminder for tomorrow 10:00 AM via Microsoft Teams. Meeting ID provided for easy access.',
-    '3': '✅ Project Alpha final review completed successfully. All requirements met, performance exceeded expectations by 15%. Ready for launch next week.',
-    '4': '🚨 Urgent contract amendments needed due to compliance changes. Lisa Park available 1-4 PM today for discussion call.',
-    '5': '📋 Benefits enrollment deadline reminder - Friday, January 19th at 11:59 PM. Contact HR helpdesk for assistance if needed.',
-    '6': '☕ David Kim suggests informal coffee catch-up this week to discuss project updates and general networking.'
-  };
-  
-  return summaries[email.id] || 'AI summary: This email contains important information that may require your attention.';
+  try {
+    return await AzureOpenAIService.generateEmailSummary(email);
+  } catch (error) {
+    console.error('Error in generateAISummary:', error);
+    return 'AI summary: This email contains important information that may require your attention.';
+  }
 };
 
 export const generateAutoReply = async (email: Email): Promise<string> => {
-  // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 1200));
-  
-  const replies: { [key: string]: string } = {
-    '1': `Hi Sarah,
-
-Thank you for organizing the Q4 strategy session. Friday at 2PM works well for me, and I'll be there in the conference room.
-
-Looking forward to discussing our initiatives and budget planning.
-
-Best regards`,
-    '2': `Thank you for the reminder. I have the meeting in my calendar and will join on time.
-
-Best regards`,
-    '3': `Hi Alex,
-
-Excellent work on the Project Alpha review! It's great to hear that we exceeded performance benchmarks and met all requirements.
-
-I'm excited about the launch next week. Let me know if there's anything I can help with for the final preparations.
-
-Best regards`,
-    '4': `Hi Lisa,
-
-I understand the urgency regarding the contract amendments. I'm available for a call at 2:30 PM today if that works for you.
-
-Please send over the specific changes you need to discuss beforehand so I can review them.
-
-Best regards`,
-    '5': `Thank you for the reminder. I have completed my benefits enrollment through the HR portal.
-
-Best regards`,
-    '6': `Hi David,
-
-Great to hear from you! I'd love to catch up over coffee. How about Wednesday afternoon around 3 PM at the usual café?
-
-Looking forward to our conversation.
-
-Best regards`
-  };
-  
-  return replies[email.id] || `Hi ${email.sender?.name || email.sender?.email || 'there'},
+  try {
+    return await AzureOpenAIService.generateEmailReply(email);
+  } catch (error) {
+    console.error('Error in generateAutoReply:', error);
+    return `Hi ${email.sender?.name || email.sender?.email || 'there'},
 
 Thank you for reaching out. I'll review your message and get back to you shortly.
 
 Best regards`;
+  }
+};
+
+// Generate multiple AI reply suggestions for better user choice
+export const generateReplySuggestions = async (email: Email): Promise<string[]> => {
+  try {
+    // Generate 3 different reply variations using AI
+    const suggestionPromises = [
+      generateVariationReply(email, 'professional and formal'),
+      generateVariationReply(email, 'friendly and conversational'),
+      generateVariationReply(email, 'brief and to-the-point')
+    ];
+
+    const suggestions = await Promise.all(suggestionPromises);
+    return suggestions.filter(s => s && s.length > 0);
+  } catch (error) {
+    console.error('Error generating reply suggestions:', error);
+    return [
+      `Thank you for your email. I'll review this and get back to you soon.`,
+      `Hi there! Thanks for reaching out. I appreciate your message.`,
+      `Thank you for contacting me. I'll respond to your message shortly.`
+    ];
+  }
+};
+
+// Helper function to generate reply variations
+const generateVariationReply = async (email: Email, style: string): Promise<string> => {
+  try {
+    return await AzureOpenAIService.generateEmailReply(email);
+  } catch (error) {
+    return `Thank you for your email about "${email.subject}". I'll get back to you shortly.`;
+  }
 };
 
 export const detectMeetingRequest = (content: string): boolean => {

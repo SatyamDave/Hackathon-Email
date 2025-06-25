@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Email } from '../types/email';
 import { mockEmails } from '../data/mockEmails';
 
@@ -37,6 +37,7 @@ interface EmailContextType {
   hasAIPriorities: boolean;
   hasCustomView: boolean;
   customCriteria: string;
+  resetToDefault: () => void;
   toasts: Toast[];
   addToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: number) => void;
@@ -65,6 +66,11 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeToast = (id: number) => setToasts((prev) => prev.filter(t => t.id !== id));
+
+  // Initialize emails on mount
+  useEffect(() => {
+    setEmails(mockEmails);
+  }, []);
 
   const markAsRead = (emailId: string) => {
     setEmails(emails.map(email => 
@@ -138,50 +144,99 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
 
   const generateAIPriorities = async () => {
     setIsLoading(true);
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const urgencies: ('high' | 'medium' | 'low')[] = ['high', 'medium', 'low'];
-        setEmails(emails.map(email => ({
-          ...email,
-          urgency: urgencies[Math.floor(Math.random() * urgencies.length)]
-        })));
-        setHasAIPriorities(true);
-        addToast('AI priorities generated!', 'success');
-        setIsLoading(false);
-        resolve();
-      }, 1200);
+    
+    // Simple mock priority logic - no real AI, start from fresh mock data
+    const processedEmails = mockEmails.map(email => {
+      let urgency: 'high' | 'medium' | 'low' = 'medium';
+      
+      const content = (email.subject + ' ' + email.content + ' ' + email.sender.name).toLowerCase();
+      
+      // High priority keywords
+      if (content.includes('urgent') || content.includes('asap') || content.includes('immediate') || 
+          content.includes('security') || content.includes('breach') || content.includes('critical') ||
+          content.includes('deadline') || content.includes('ceo') || content.includes('manager')) {
+        urgency = 'high';
+      }
+      // Low priority keywords  
+      else if (content.includes('newsletter') || content.includes('unsubscribe') || 
+               content.includes('social') || content.includes('promotion') || content.includes('marketing')) {
+        urgency = 'low';
+      }
+      
+      return { ...email, urgency };
     });
+    
+    setEmails(processedEmails);
+    setHasAIPriorities(true);
+    addToast('AI priorities generated!', 'success');
+    setIsLoading(false);
+  };
+
+  const resetToDefault = () => {
+    setEmails(mockEmails);
+    setHasAIPriorities(false);
+    setHasCustomView(false);
+    setCustomCriteria('');
+    addToast('Reset to default view!', 'info');
   };
 
   const generateCustomView = async (criteria: string) => {
     setIsLoading(true);
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const shuffled = [...emails].sort(() => Math.random() - 0.5);
-        setEmails(shuffled);
-        setCustomCriteria(criteria);
-        setHasCustomView(true);
-        addToast('Custom view generated!', 'success');
-        setIsLoading(false);
-        resolve();
-      }, 1200);
-    });
+    
+    const criteriaLower = criteria.toLowerCase();
+    // Start fresh from mock emails to avoid stale state
+    let sortedEmails = [...mockEmails];
+    
+    // Hardcoded use cases
+    if (criteriaLower.includes('security')) {
+      // Case 1: Security on top
+      sortedEmails.sort((a, b) => {
+        const aHasSecurity = (a.subject + ' ' + a.content + ' ' + a.sender.name).toLowerCase().includes('security');
+        const bHasSecurity = (b.subject + ' ' + b.content + ' ' + b.sender.name).toLowerCase().includes('security');
+        
+        if (aHasSecurity && !bHasSecurity) return -1;
+        if (!aHasSecurity && bHasSecurity) return 1;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+      addToast('Security emails moved to top!', 'success');
+    }
+    else if (criteriaLower.includes('meeting')) {
+      // Case 2: Meetings on top
+      sortedEmails.sort((a, b) => {
+        const aHasMeeting = (a.subject + ' ' + a.content).toLowerCase().includes('meeting') || 
+                           (a.subject + ' ' + a.content).toLowerCase().includes('call') ||
+                           (a.subject + ' ' + a.content).toLowerCase().includes('schedule');
+        const bHasMeeting = (b.subject + ' ' + b.content).toLowerCase().includes('meeting') || 
+                           (b.subject + ' ' + b.content).toLowerCase().includes('call') ||
+                           (b.subject + ' ' + b.content).toLowerCase().includes('schedule');
+        
+        if (aHasMeeting && !bHasMeeting) return -1;
+        if (!aHasMeeting && bHasMeeting) return 1;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+      addToast('Meeting emails moved to top!', 'success');
+    }
+         
+    else {
+      // Default: just reverse chronological order
+      sortedEmails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      addToast('Custom filter applied!', 'success');
+    }
+    
+         setEmails(sortedEmails);
+     setCustomCriteria(criteria);
+     setHasCustomView(true);
+     setIsLoading(false);
   };
 
   const generateSummary = async (email: Email) => {
-    return new Promise<string>((resolve) => {
-      setTimeout(() => {
-        resolve(`Summary: ${email.preview}`);
-      }, 800);
-    });
+    // Simple mock summary - no real AI
+    return `Summary: ${email.preview}`;
   };
 
   const generateReply = async (email: Email) => {
-    return new Promise<string>((resolve) => {
-      setTimeout(() => {
-        resolve(`Thank you for your email about "${email.subject}". I will review and get back to you soon.`);
-      }, 800);
-    });
+    // Simple mock reply - no real AI
+    return `Thank you for your email about "${email.subject}". I will review and get back to you soon.`;
   };
 
   const sendReply = async (emailId: string, content: string) => {
@@ -231,6 +286,7 @@ export function EmailProvider({ children }: { children: React.ReactNode }) {
       hasAIPriorities,
       hasCustomView,
       customCriteria,
+      resetToDefault,
       toasts,
       addToast,
       removeToast

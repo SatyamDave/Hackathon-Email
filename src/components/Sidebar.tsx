@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Inbox, Star, Archive, Send, FileText, Settings, Brain, FolderSync as Sync, LogOut, Plus, Keyboard, Mail } from 'lucide-react';
+import { Inbox, Star, Archive, Send, FileText, Settings, Brain, FolderSync as Sync, LogOut, Plus, Keyboard, Mail, RotateCcw } from 'lucide-react';
 import { useEmail } from '../contexts/EmailContext';
 import SettingsModal from './SettingsModal';
 import EmailComposer from './EmailComposer';
 import KeyboardShortcuts from './KeyboardShortcuts';
 
 export default function Sidebar() {
-  const { emails, syncEmails, isLoading, addToast } = useEmail();
+  const { emails, syncEmails, isLoading, addToast, resetToDefault } = useEmail();
   const mockUser = { name: 'Demo User', username: 'demo@company.com' };
   const initials = mockUser.name ? mockUser.name.split(' ').map(n => n[0]).join('').toUpperCase() : '';
   
@@ -80,8 +80,8 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Sync Button */}
-      <div className="p-4 border-b border-gray-200">
+      {/* Sync and Reset Buttons */}
+      <div className="p-4 border-b border-gray-200 space-y-2">
         <button
           onClick={handleSync}
           disabled={isLoading}
@@ -89,6 +89,13 @@ export default function Sidebar() {
         >
           <Sync className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           <span>{isLoading ? 'Syncing...' : 'Sync'}</span>
+        </button>
+        <button
+          onClick={resetToDefault}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-red-50 text-red-700 rounded-lg transition-colors hover:bg-red-100 font-medium"
+        >
+          <RotateCcw className="w-4 h-4" />
+          <span>Reset</span>
         </button>
       </div>
 

@@ -15,6 +15,7 @@ export default function EmailDetail() {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingReply, setLoadingReply] = useState(false);
 
+
   if (isLoading) {
     return <div className="p-8 text-center text-gray-400">Loading...</div>;
   }
@@ -49,6 +50,8 @@ export default function EmailDetail() {
     setLoadingReply(false);
     addToast('AI reply generated!', 'success');
   };
+
+
 
   const handleUseTemplate = (subject: string, body: string) => {
     setAiReply(body);
@@ -192,8 +195,18 @@ export default function EmailDetail() {
         <div className="border-t border-gray-200 bg-gray-50">
           <div className="px-6 py-4">
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="px-4 py-3 border-b border-gray-200">
+              <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-900">Reply to {selectedEmail.sender.name}</p>
+                {/* Suggested Reply Button */}
+                <button 
+                  className="flex items-center space-x-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50"
+                  onClick={handleGenerateReply}
+                  disabled={loadingReply}
+                  title="Generate AI-powered suggested reply"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{loadingReply ? 'Generating...' : 'Suggested Reply'}</span>
+                </button>
               </div>
               <textarea
                 value={aiReply}
@@ -201,19 +214,30 @@ export default function EmailDetail() {
                 className="w-full h-32 p-4 border-0 resize-none focus:ring-0 focus:outline-none text-gray-900 placeholder-gray-500"
                 placeholder="Type your reply..."
               />
-              <div className="px-4 py-3 border-t border-gray-200 flex justify-end space-x-2">
-                <button 
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                  onClick={() => addToast('Draft saved!', 'success')}
-                >
-                  Save Draft
-                </button>
-                <button 
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors"
-                  onClick={() => { setShowReplyComposer(false); addToast('Reply sent!', 'success'); }}
-                >
-                  Send Reply
-                </button>
+              <div className="px-4 py-3 border-t border-gray-200 flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  {/* AI Suggestions Indicator */}
+                  {aiReply && !loadingReply && (
+                    <div className="flex items-center space-x-1 text-xs text-blue-600">
+                      <Sparkles className="w-3 h-3" />
+                      <span>AI-suggested content</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  <button 
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                    onClick={() => addToast('Draft saved!', 'success')}
+                  >
+                    Save Draft
+                  </button>
+                  <button 
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors"
+                    onClick={() => { setShowReplyComposer(false); addToast('Reply sent!', 'success'); }}
+                  >
+                    Send Reply
+                  </button>
+                </div>
               </div>
             </div>
           </div>
